@@ -13,5 +13,4 @@
 </section><p id="search-empty" class="empty search-empty" hidden>Kein installiertes Projekt passt zur Suche.</p>
 {% else %}<section class="empty"><h2>Noch keine installierten Projekte</h2><p>Installiere zuerst ein angelegtes Projekt. Danach erscheint es hier automatisch als Schnellzugriff.</p>{% if logged_in %}<a class="button" href="/installation">Zur Installation</a><a class="button secondary" href="/admin">Projekt anlegen</a>{% else %}<a class="button" href="/admin/login">Als Administrator anmelden</a>{% endif %}</section>{% endif %}
 {% if news %}<h2>Neuigkeiten</h2>{% for n in news %}<article class="notice"><b>{{ n.title }}</b><p>{{ n.body }}</p></article>{% endfor %}{% endif %}
-{% if projects %}<script>const q=document.getElementById('project-search'),cards=[...document.querySelectorAll('.project-tile')],empty=document.getElementById('search-empty');q.addEventListener('input',()=>{const term=q.value.trim().toLocaleLowerCase('de');let shown=0;cards.forEach(card=>{const visible=card.dataset.search.includes(term);card.hidden=!visible;if(visible)shown++});empty.hidden=shown!==0});</script>{% endif %}
 {% endblock %}

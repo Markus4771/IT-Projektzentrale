@@ -18,5 +18,6 @@
 - `../ROADMAP.md` – Entwicklungsphasen
 - `development/WORKFLOW.md` – Arbeits- und Releaseablauf
 - `INSTALLATION.md` – aktueller und später geplanter Installationsweg
-- `security/SECURITY_REVIEW_1.0.0-beta.1.md` – Sicherheits- und Freigabeblocker
+- `security/SECURITY_REVIEW_1.0.0-beta.2.md` – aktueller Sicherheits- und Freigabestatus
+- `security/SECURITY_REVIEW_1.0.0-beta.1.md` – historische Bestandsprüfung
 - `../SECURITY.md` – Sicherheitsregeln
