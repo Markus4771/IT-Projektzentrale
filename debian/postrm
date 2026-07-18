@@ -1,0 +1,11 @@
+#!/bin/sh
+set -e
+if [ "$1" = purge ]; then
+    rm -f /etc/it-projektzentrale.conf /etc/sudoers.d/it-projektzentrale
+    rm -f /etc/nginx/sites-enabled/it-projektzentrale
+    rm -rf /opt/it-projektzentrale
+    systemctl daemon-reload 2>/dev/null || true
+    systemctl reload nginx 2>/dev/null || true
+fi
+exit 0
+
