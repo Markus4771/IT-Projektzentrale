@@ -1,0 +1,69 @@
+#!/bin/sh
+set -eu
+
+APP_USER=it-projektzentrale
+APP_DIR=/opt/it-projektzentrale
+NGINX_AVAILABLE=/etc/nginx/sites-available/it-projektzentrale.conf
+NGINX_ENABLED=/etc/nginx/sites-enabled/it-projektzentrale.conf
+SERVICE=it-projektzentrale.service
+
+if ! getent passwd "$APP_USER" >/dev/null 2>&1; then
+    adduser --system --group --home "$APP_DIR" --no-create-home "$APP_USER"
+fi
+
+mkdir -p "$APP_DIR/data" "$APP_DIR/uploads/packages"
+
+if [ ! -x "$APP_DIR/.venv/bin/python" ]; then
+    rm -rf "$APP_DIR/.venv"
+    python3 -m venv "$APP_DIR/.venv"
+fi
+
+"$APP_DIR/.venv/bin/pip" install --disable-pip-version-check --upgrade pip
+"$APP_DIR/.venv/bin/pip" install --disable-pip-version-check -r "$APP_DIR/requirements.txt"
+
+if [ ! -f /etc/it-projektzentrale.conf ]; then
+    umask 077
+    cat > /etc/it-projektzentrale.conf <<EOF_CONFIG
+ITPZ_SECRET=$(openssl rand -hex 32)
+ITPZ_ADMIN_USER=admin
+ITPZ_ADMIN_PASSWORD=admin
+EOF_CONFIG
+fi
+chmod 600 /etc/it-projektzentrale.conf
+
+chown -R "$APP_USER:$APP_USER" "$APP_DIR"
+chmod 750 "$APP_DIR" "$APP_DIR/data" "$APP_DIR/uploads" "$APP_DIR/uploads/packages"
+
+cat > /etc/sudoers.d/it-projektzentrale <<'EOF_SUDOERS'
+it-projektzentrale ALL=(root) NOPASSWD: /usr/bin/apt-get install -y /opt/it-projektzentrale/uploads/packages/*.deb, /usr/bin/apt-get remove -y *, /usr/bin/systemctl start *, /usr/bin/systemctl stop *, /usr/bin/systemctl restart *
+EOF_SUDOERS
+chmod 440 /etc/sudoers.d/it-projektzentrale
+if command -v visudo >/dev/null 2>&1; then
+    visudo -cf /etc/sudoers.d/it-projektzentrale >/dev/null
+fi
+
+rm -f /etc/nginx/sites-enabled/it-projektzentrale
+ln -sfn "$NGINX_AVAILABLE" "$NGINX_ENABLED"
+rm -f /etc/nginx/sites-enabled/default
+
+systemctl daemon-reload
+
+if ! nginx -t; then
+    echo "Fehler: Die Nginx-Konfiguration ist ungültig." >&2
+    echo "Prüfe weitere Dateien in /etc/nginx/sites-enabled/." >&2
+    exit 1
+fi
+
+systemctl enable "$SERVICE" nginx.service >/dev/null 2>&1 || true
+systemctl restart "$SERVICE"
+systemctl restart nginx.service
+
+IP_ADDR=$(hostname -I 2>/dev/null | awk '{print $1}')
+[ -n "$IP_ADDR" ] || IP_ADDR="SERVER-IP"
+echo ""
+echo "IT-Projektzentrale 1.0.0 Beta 1 wurde eingerichtet."
+echo "Aufruf: http://$IP_ADDR/"
+echo "Erstanmeldung: admin / admin"
+echo "Das Passwort steht in /etc/it-projektzentrale.conf und sollte geändert werden."
+exit 0
+

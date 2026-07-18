@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+
+      - name: Python-Syntax prüfen
+        run: python3 -m py_compile app/main.py
+
+      - name: Shell-Syntax prüfen
+        run: |
+          bash -n install.sh scripts/build_deb.sh
+          sh -n debian/postinst debian/prerm debian/postrm
+
+      - name: Debian-Paket bauen
+        run: bash scripts/build_deb.sh
+
+      - name: Paket prüfen
+        run: |
+          PACKAGE=$(find dist -maxdepth 1 -type f -name '*.deb' -print -quit)
+          test -n "$PACKAGE"
+          dpkg-deb --info "$PACKAGE"
+          sha256sum -c "$PACKAGE.sha256"
+
+      - name: Build-Artefakte bereitstellen
+        uses: actions/upload-artifact@v4
+        with:
+          name: it-projektzentrale-${{ github.sha }}
+          path: |
+            dist/*.deb
+            dist/*.sha256

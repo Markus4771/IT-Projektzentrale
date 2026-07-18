@@ -1,0 +1,19 @@
+[Unit]
+Description=IT-Projektzentrale
+After=network.target
+
+[Service]
+Type=simple
+User=it-projektzentrale
+Group=it-projektzentrale
+WorkingDirectory=/opt/it-projektzentrale
+EnvironmentFile=-/etc/it-projektzentrale.conf
+ExecStart=/opt/it-projektzentrale/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
+Restart=on-failure
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/it-projektzentrale/data /opt/it-projektzentrale/uploads
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

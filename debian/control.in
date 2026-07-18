@@ -1,0 +1,11 @@
+Package: it-projektzentrale
+Version: @DEBIAN_VERSION@
+Section: admin
+Priority: optional
+Architecture: all
+Maintainer: Markus Ach
+Depends: python3, python3-venv, nginx, sudo, openssl, dpkg
+Description: Zentrale Projekt- und Installationswebseite
+ Verwaltet eigene Projekte und installiert Debian-Pakete aus Uploads,
+ GitHub-Releases und Gitea-Releases über eine Weboberfläche auf Port 80.
+
