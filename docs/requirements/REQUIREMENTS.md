@@ -28,6 +28,8 @@ Berechtigungen werden nach dem Prinzip der geringsten erforderlichen Rechte verg
 - Benutzer mit Lesezugriff dürfen keine Projekte installieren, aktualisieren, löschen oder konfigurieren.
 - Benutzer mit Lesezugriff sehen ausschließlich die Projekte, die ein Administrator für sie freigegeben hat; nicht freigegebene Projekte werden vollständig ausgeblendet.
 - Die Benutzer- und Rollenverwaltung sowie übergreifende Sicherheitseinstellungen bleiben ausschließlich Administratoren vorbehalten.
+- Benutzerkonten werden ausschließlich durch Administratoren angelegt, geändert, deaktiviert oder gelöscht.
+- Eine öffentliche Selbstregistrierung ist nicht vorgesehen.
 
 Die Verwaltungsrechte eines Projektverwalters gelten nicht für nicht zugewiesene Projekte. Weitere Einzelrechte werden im weiteren Verlauf des Lastenhefts festgelegt.
 
