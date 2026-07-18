@@ -12,14 +12,24 @@ Die IT-Projektzentrale ist eine zentrale Weboberfläche zur Installation, Verwal
 - Installierte Projekte werden zentral erfasst und verwaltet.
 - Die Bedienung erfolgt über eine übersichtliche Weboberfläche.
 
-## 3. Dashboard
+## 3. Benutzer- und Rollenmodell
+
+Die IT-Projektzentrale unterstützt mehrere Benutzer und verwendet folgendes Rollenmodell (Variante C):
+
+- **Administrator:** vollständige administrative Kontrolle über die IT-Projektzentrale.
+- **Projektverwalter:** Verwaltung der dafür freigegebenen Projekte ohne Zugriff auf die Benutzer- und Rollenverwaltung oder auf übergreifende Sicherheitseinstellungen.
+- **Benutzer mit Lesezugriff:** Anzeige des Dashboards, der freigegebenen Projektinformationen und der Projektverknüpfungen ohne verändernde Verwaltungsaktionen.
+
+Berechtigungen werden nach dem Prinzip der geringsten erforderlichen Rechte vergeben. Die detaillierte Berechtigungsmatrix für Installation, Aktualisierung, Entfernung und Konfiguration wird im weiteren Verlauf des Lastenhefts festgelegt.
+
+## 4. Dashboard
 
 - Das Dashboard zeigt alle installierten Projekte.
 - Jedes installierte Projekt besitzt einen direkten Link zu seiner Weboberfläche.
 - Zu jedem Projekt werden mindestens Name, Status, Version und Zieladresse angezeigt.
 - Ist kein Projekt installiert, zeigt das Dashboard einen verständlichen Leerzustand.
 
-## 4. Projektinstallation
+## 5. Projektinstallation
 
 - Projekte können über die Weboberfläche als DEB-Paket installiert werden.
 - Als Installationsquellen werden lokale Uploads, GitHub und Gitea unterstützt.
@@ -27,28 +37,28 @@ Die IT-Projektzentrale ist eine zentrale Weboberfläche zur Installation, Verwal
 - Vor der Installation werden Paketname, Version und Quelle angezeigt.
 - Fehler während der Installation werden verständlich protokolliert und ausgegeben.
 
-## 5. Projektaktualisierung
+## 6. Projektaktualisierung
 
 - Für installierte Projekte kann über die Weboberfläche nach Aktualisierungen gesucht werden.
 - Aktualisierungen können aus der jeweils konfigurierten GitHub- oder Gitea-Quelle installiert werden.
 - Vor einer Aktualisierung werden aktuelle und verfügbare Version angezeigt.
 - Fehlgeschlagene Aktualisierungen dürfen den bisherigen funktionsfähigen Stand nicht unkontrolliert beschädigen.
 
-## 6. Projektentfernung
+## 7. Projektentfernung
 
 - Installierte Projekte können über die Weboberfläche deinstalliert werden.
 - Vor der Deinstallation ist eine eindeutige Bestätigung erforderlich.
 - Die Anwendung weist darauf hin, ob Konfigurationen und Projektdaten erhalten oder entfernt werden.
 - Nach erfolgreicher Deinstallation wird das Projekt aus dem Dashboard entfernt.
 
-## 7. Projektverwaltung
+## 8. Projektverwaltung
 
 - Projekte können mit Name, Beschreibung, Version, Webadresse und Installationsquelle verwaltet werden.
 - GitHub- und Gitea-Verbindungen können je Projekt konfiguriert werden.
 - Status und Erreichbarkeit eines Projekts werden nachvollziehbar dargestellt.
 - Aktionen und technische Meldungen werden protokolliert.
 
-## 8. Sicherheit
+## 9. Sicherheit
 
 - Verwaltungsfunktionen sind nur für berechtigte Benutzer zugänglich.
 - Passwörter und Zugriffstokens werden nicht im Klartext in der Weboberfläche oder in Protokollen ausgegeben.
@@ -56,7 +66,7 @@ Die IT-Projektzentrale ist eine zentrale Weboberfläche zur Installation, Verwal
 - Hochgeladene Pakete werden vor der Verarbeitung geprüft.
 - Systembefehle werden ausschließlich mit kontrollierten Parametern ausgeführt.
 
-## 9. Qualität und Betrieb
+## 10. Qualität und Betrieb
 
 - Die Anwendung ist für Debian-basierte Systeme vorgesehen.
 - Installation, Aktualisierung und Deinstallation der IT-Projektzentrale selbst sind dokumentiert.
@@ -64,10 +74,10 @@ Die IT-Projektzentrale ist eine zentrale Weboberfläche zur Installation, Verwal
 - Die Oberfläche ist auf Desktop, Tablet und Smartphone nutzbar.
 - Anforderungen werden bei der Weiterentwicklung in diesem Dokument gepflegt.
 
-## 10. Offene Konkretisierungen
+## 11. Offene Konkretisierungen
 
+- Detaillierte Berechtigungsmatrix der drei Benutzerrollen
 - Unterstützte Debian- und Raspberry-Pi-OS-Versionen
-- Benutzer- und Rollenmodell
 - Sicherungs- und Wiederherstellungsverfahren
 - Verhalten bei Abhängigkeitskonflikten zwischen DEB-Paketen
 - Definition der Schnittstelle beziehungsweise Metadaten für verwaltete Projekte
