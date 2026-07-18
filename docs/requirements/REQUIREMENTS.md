@@ -20,7 +20,14 @@ Die IT-Projektzentrale unterstützt mehrere Benutzer und verwendet folgendes Rol
 - **Projektverwalter:** Verwaltung der dafür freigegebenen Projekte ohne Zugriff auf die Benutzer- und Rollenverwaltung oder auf übergreifende Sicherheitseinstellungen.
 - **Benutzer mit Lesezugriff:** Anzeige des Dashboards, der freigegebenen Projektinformationen und der Projektverknüpfungen ohne verändernde Verwaltungsaktionen.
 
-Berechtigungen werden nach dem Prinzip der geringsten erforderlichen Rechte vergeben. Die detaillierte Berechtigungsmatrix für Installation, Aktualisierung, Entfernung und Konfiguration wird im weiteren Verlauf des Lastenhefts festgelegt.
+Berechtigungen werden nach dem Prinzip der geringsten erforderlichen Rechte vergeben. Für verändernde Projektaktionen gilt folgende Festlegung:
+
+- Administratoren dürfen Projekte installieren, aktualisieren und löschen.
+- Projektverwalter dürfen die für sie freigegebenen Projekte installieren, aktualisieren und löschen.
+- Benutzer mit Lesezugriff dürfen keine Projekte installieren, aktualisieren, löschen oder konfigurieren.
+- Die Benutzer- und Rollenverwaltung sowie übergreifende Sicherheitseinstellungen bleiben ausschließlich Administratoren vorbehalten.
+
+Der Geltungsbereich der Projektverwalterrechte und weitere Einzelrechte werden im weiteren Verlauf des Lastenhefts festgelegt.
 
 ## 4. Dashboard
 
@@ -76,7 +83,7 @@ Berechtigungen werden nach dem Prinzip der geringsten erforderlichen Rechte verg
 
 ## 11. Offene Konkretisierungen
 
-- Detaillierte Berechtigungsmatrix der drei Benutzerrollen
+- Geltungsbereich der Projektverwalterrechte und verbleibende Einzelrechte
 - Unterstützte Debian- und Raspberry-Pi-OS-Versionen
 - Sicherungs- und Wiederherstellungsverfahren
 - Verhalten bei Abhängigkeitskonflikten zwischen DEB-Paketen
