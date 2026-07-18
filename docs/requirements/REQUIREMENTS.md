@@ -30,6 +30,11 @@ Berechtigungen werden nach dem Prinzip der geringsten erforderlichen Rechte verg
 - Die Benutzer- und Rollenverwaltung sowie übergreifende Sicherheitseinstellungen bleiben ausschließlich Administratoren vorbehalten.
 - Benutzerkonten werden ausschließlich durch Administratoren angelegt, geändert, deaktiviert oder gelöscht.
 - Eine öffentliche Selbstregistrierung ist nicht vorgesehen.
+- Bei der DEB-Installation wird ein festes Standard-Administratorkonto mit einem festen Initialpasswort angelegt.
+- Beim ersten Login muss das Initialpasswort zwingend geändert werden.
+- Bis zum erfolgreichen Passwortwechsel sind sämtliche Funktionen außer der Passwortänderung gesperrt.
+- Nach dem Passwortwechsel wird das Initialpasswort ungültig und darf nicht mehr zur Anmeldung verwendet werden.
+- Das neue Passwort wird ausschließlich in sicher gehashter Form gespeichert.
 
 Die Verwaltungsrechte eines Projektverwalters gelten nicht für nicht zugewiesene Projekte. Weitere Einzelrechte werden im weiteren Verlauf des Lastenhefts festgelegt.
 
@@ -87,6 +92,7 @@ Die Verwaltungsrechte eines Projektverwalters gelten nicht für nicht zugewiesen
 
 ## 11. Offene Konkretisierungen
 
+- Konkreter Benutzername und konkretes Initialpasswort des Standard-Administratorkontos
 - Verbleibende Einzelrechte der drei Benutzerrollen
 - Unterstützte Debian- und Raspberry-Pi-OS-Versionen
 - Sicherungs- und Wiederherstellungsverfahren
