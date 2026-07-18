@@ -127,6 +127,8 @@ Sie dürfen keine Projekte, Dienste oder Einstellungen verändern. Nicht freigeg
 | Projektinformationen bearbeiten | Ja | Zugewiesen | Nein |
 | Projekt installieren | Ja | Zugewiesen | Nein |
 | Projekt aktualisieren | Ja | Zugewiesen | Nein |
+| Projekt archivieren/wiederherstellen | Ja | Zugewiesen | Nein |
+| Projektdefinition exportieren/importieren | Ja | Zugewiesen | Nein |
 | Projekt löschen | Ja | Zugewiesen | Nein |
 | Projektbezogene Dienste bedienen | Ja | Zugewiesen | Nein |
 | Benutzer und Rollen verwalten | Ja | Nein | Nein |
@@ -158,7 +160,11 @@ Es MUSS:
 
 - jedes sichtbare installierte Projekt als eigene Kachel darstellen,
 - mindestens Name, Beschreibung, installierte Version, Status und Zieladresse anzeigen,
-- einen deutlich erkennbaren Schnellzugriff zur Projekt-Weboberfläche anbieten,
+- die Aktionen „Öffnen“ und „Verwalten“ deutlich erkennbar anbieten,
+- mit „Öffnen“ direkt zur hinterlegten Projekt-Weboberfläche führen,
+- mit „Verwalten“ die Projektdetails und die erlaubten Verwaltungsaktionen öffnen,
+- Favoriten unterstützen,
+- eine Suche nach installierten Projekten bereitstellen,
 - verfügbare Aktualisierungen kennzeichnen,
 - nicht erreichbare Projekte verständlich markieren,
 - die Sichtbarkeitsregeln des Rollenmodells beachten,
@@ -173,6 +179,7 @@ Der Bereich „Projekte“ dient der Übersicht und Pflege aller für den angeme
 Eine Projektansicht MUSS mindestens enthalten:
 
 - Projektname
+- Projektlogo
 - Kurzbeschreibung
 - ausführliche Beschreibung
 - installierte Version
@@ -187,6 +194,22 @@ Eine Projektansicht MUSS mindestens enthalten:
 - zugewiesene Projektverwalter
 - freigeschaltete Benutzer
 - verfügbare Aktionen entsprechend der Benutzerrolle
+
+Je nach Berechtigung stehen folgende Aktionen zur Verfügung:
+
+- Öffnen
+- Verwalten
+- Bearbeiten
+- Aktualisieren
+- Archivieren
+- Wiederherstellen
+- Exportieren
+- Importieren
+- Löschen beziehungsweise Deinstallieren
+
+Archivierte Projekte werden aus der aktiven Projektübersicht und dem Dashboard ausgeblendet. Projektdefinition und Historie bleiben erhalten und können wiederhergestellt werden.
+
+Der Export umfasst die Projektdefinition zur Sicherung oder Übernahme. Ein Import legt daraus einen Projekteintrag an; das zugehörige DEB-Paket und die Nutzdaten des verwalteten Projekts sind nur enthalten, wenn dies ausdrücklich durch das verwendete Exportformat unterstützt wird.
 
 ### 7.3 Installation
 
@@ -299,6 +322,18 @@ Nach erfolgreicher Installation MUSS das Projekt automatisch im Dashboard ersche
 
 Die IT-Projektzentrale SOLL die konfigurierte Webadresse eines Projekts prüfen und einen verständlichen Status anzeigen. Eine Nichterreichbarkeit darf den Aufruf oder andere Projekte nicht blockieren.
 
+### PRJ-006 – Archivieren und Wiederherstellen
+
+Berechtigte Benutzer MÜSSEN ein Projekt archivieren und später wiederherstellen können. Beim Archivieren bleiben Projektdefinition und Historie erhalten. Ein archiviertes Projekt erscheint nicht im aktiven Dashboard.
+
+### PRJ-007 – Projektdefinition exportieren
+
+Berechtigte Benutzer MÜSSEN eine Projektdefinition in einem übertragbaren Format exportieren können. Der Export MUSS mindestens Metadaten, Webadresse, Paketdaten, Quelle und Dienstzuordnung enthalten. Geheimnisse dürfen nicht ungeschützt exportiert werden.
+
+### PRJ-008 – Projektdefinition importieren
+
+Berechtigte Benutzer MÜSSEN eine zuvor exportierte Projektdefinition importieren können. Vor der Übernahme werden Inhalt, erkannte Quelle und mögliche Konflikte angezeigt.
+
 ## 9. Installation von Projekten
 
 ### INS-001 – Lokaler DEB-Upload
@@ -382,9 +417,15 @@ Administratoren dürfen alle Projekte löschen. Projektverwalter dürfen ausschl
 
 Vor einer Deinstallation MUSS eine eindeutige Bestätigung mit Projektname und Paketname erfolgen.
 
-### DEL-003 – Datenbehandlung
+### DEL-003 – Umfang der Entfernung
 
-Vor der Deinstallation MUSS angezeigt werden, ob Konfigurationen und Projektdaten erhalten oder entfernt werden. Die endgültige technische Trennung zwischen Paket, Konfiguration und Nutzdaten wird noch festgelegt.
+Vor dem Abschluss MUSS der berechtigte Benutzer zwischen folgenden Varianten wählen können:
+
+1. nur den Projekteintrag aus der IT-Projektzentrale entfernen,
+2. zusätzlich das zugehörige DEB-Paket deinstallieren,
+3. zusätzlich Konfigurationen und Projektdaten entfernen, soweit diese sicher zugeordnet werden können.
+
+Die ausgewählte Variante und ihre Folgen werden vor der Bestätigung verständlich angezeigt. Die endgültige technische Trennung zwischen Paket, Konfiguration und Nutzdaten wird im Pflichtenheft festgelegt.
 
 ### DEL-004 – Abschluss
 
@@ -498,14 +539,15 @@ Version 1.0 gilt aus Sicht des Lastenhefts als abnahmefähig, wenn mindestens fo
 5. Ein gültiges DEB-Paket kann über die Weboberfläche installiert werden.
 6. Ein Projekt kann aus einem GitHub-Release installiert werden.
 7. Ein Projekt kann aus einem Gitea-Release installiert werden.
-8. Ein installiertes Projekt erscheint mit funktionierendem Schnellzugriff im Dashboard.
-9. Eine verfügbare Aktualisierung wird erkannt und kann bestätigt installiert werden.
-10. Ein zugewiesener Projektverwalter kann sein Projekt installieren, aktualisieren und löschen.
-11. Derselbe Projektverwalter kann keine nicht zugewiesenen Projekte verwalten.
-12. Ein Benutzer mit Lesezugriff sieht nur freigegebene Projekte und kann keine Änderungen durchführen.
-13. Eine bestätigte Deinstallation entfernt das Projekt aus den zugehörigen Übersichten.
-14. Ein Backup der Projektzentrale kann erstellt und geprüft wiederhergestellt werden.
-15. Aktionen und Fehler werden ohne Offenlegung von Zugangsdaten protokolliert.
+8. Ein installiertes Projekt erscheint mit den Aktionen „Öffnen“ und „Verwalten“ im Dashboard.
+9. Ein Projekt kann archiviert, wiederhergestellt, exportiert und wieder importiert werden.
+10. Eine verfügbare Aktualisierung wird erkannt und kann bestätigt installiert werden.
+11. Ein zugewiesener Projektverwalter kann sein Projekt installieren, aktualisieren und löschen.
+12. Derselbe Projektverwalter kann keine nicht zugewiesenen Projekte verwalten.
+13. Ein Benutzer mit Lesezugriff sieht nur freigegebene Projekte und kann keine Änderungen durchführen.
+14. Eine bestätigte Deinstallation entfernt das Projekt aus den zugehörigen Übersichten.
+15. Ein Backup der Projektzentrale kann erstellt und geprüft wiederhergestellt werden.
+16. Aktionen und Fehler werden ohne Offenlegung von Zugangsdaten protokolliert.
 
 ## 19. Offene Punkte
 
