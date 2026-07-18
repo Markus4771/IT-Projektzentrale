@@ -4,7 +4,7 @@ Diese Liste ist aus Abschnitt 19 des Lastenhefts abgeleitet. Entscheidungen werd
 
 | Nr. | Thema | Status |
 |---:|---|---|
-| 1 | Benutzername und Initialpasswort des Standard-Administratorkontos | offen |
+| 1 | endgültiger Benutzername des Standard-Administratorkontos; das Initialpasswort wird seit Beta 2 pro Installation zufällig erzeugt | teilweise entschieden |
 | 2 | unterstützte Debian-, Raspberry-Pi-OS- und Architekturversionen | offen |
 | 3 | Sichtbarkeit nicht zugewiesener, aber freigegebener Projekte für Projektverwalter | offen |
 | 4 | Speicherziele, Zeitpläne und Aufbewahrung von Backups | offen |

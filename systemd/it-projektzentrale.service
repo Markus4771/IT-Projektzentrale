@@ -1,19 +1,31 @@
 [Unit]
 Description=IT-Projektzentrale
-After=network.target
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
 User=it-projektzentrale
 Group=it-projektzentrale
 WorkingDirectory=/opt/it-projektzentrale
-EnvironmentFile=-/etc/it-projektzentrale.conf
-ExecStart=/opt/it-projektzentrale/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
+EnvironmentFile=/etc/it-projektzentrale.conf
+ExecStart=/var/lib/it-projektzentrale/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --proxy-headers --forwarded-allow-ips=127.0.0.1
 Restart=on-failure
+RestartSec=3
 PrivateTmp=true
+PrivateDevices=true
 ProtectSystem=strict
-ReadWritePaths=/opt/it-projektzentrale/data /opt/it-projektzentrale/uploads
-NoNewPrivileges=true
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictRealtime=true
+ReadWritePaths=/var/lib/it-projektzentrale
+NoNewPrivileges=false
+UMask=0027
 
 [Install]
 WantedBy=multi-user.target
+

@@ -2,10 +2,12 @@
 set -e
 if [ "$1" = purge ]; then
     rm -f /etc/it-projektzentrale.conf /etc/sudoers.d/it-projektzentrale
+    rm -f /root/it-projektzentrale-initial-password
     rm -f /etc/nginx/sites-enabled/it-projektzentrale
     rm -rf /opt/it-projektzentrale
+    rm -rf /var/lib/it-projektzentrale
+    rm -rf /var/lib/it-projektzentrale-helper
     systemctl daemon-reload 2>/dev/null || true
     systemctl reload nginx 2>/dev/null || true
 fi
 exit 0
-

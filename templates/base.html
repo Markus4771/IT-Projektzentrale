@@ -1,3 +1,29 @@
-<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{ title or 'IT-Projektzentrale' }}</title><link rel="stylesheet" href="/static/style.css"></head><body>
-<header><div><strong>IT-Projektzentrale</strong><small> Zentrale Verwaltung deiner Projekte</small></div><nav><a href="/">Dashboard</a><a href="/projects">Projekte</a><a href="/installation">Installation</a>{% if logged_in %}<a href="/backups">Backups</a><a href="/system">System</a><a href="/admin">Administration</a><a href="/admin/logout">Abmelden</a>{% else %}<a href="/admin/login">Anmelden</a>{% endif %}</nav></header>
-<main>{% block content %}{% endblock %}</main><footer>IT-Projektzentrale · Version {{ app_version }}</footer></body></html>
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <title>{{ title or 'IT-Projektzentrale' }}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <div><strong>IT-Projektzentrale</strong><small> Zentrale Verwaltung deiner Projekte</small></div>
+  <nav>
+    {% if logged_in %}
+      <a href="/">Dashboard</a><a href="/projects">Projekte</a><a href="/installation">Installation</a>
+      <a href="/backups">Backups</a><a href="/system">System</a>
+      {% if current_user.role == 'admin' %}<a href="/admin">Administration</a>{% endif %}
+      <a href="/account/password">Passwort</a>
+      <form method="post" action="/admin/logout" class="nav-form"><button class="link-button">Abmelden</button></form>
+    {% else %}
+      <a href="/admin/login">Anmelden</a>
+    {% endif %}
+  </nav>
+</header>
+<main>{% block content %}{% endblock %}</main>
+<footer>IT-Projektzentrale · Version {{ app_version }}</footer>
+<script src="/static/app.js" defer></script>
+</body>
+</html>

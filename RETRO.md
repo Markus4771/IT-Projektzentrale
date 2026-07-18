@@ -2,24 +2,24 @@
 
 ## Erreicht
 
-- ursprüngliche Empfangswebseite zur Projektzentrale konkretisiert
-- Lastenheft mit Dashboard, Projekten, DEB, GitHub, Gitea, Updates, Backups, Diensten und Rollen erstellt
-- Beta 1 mit Quellcode, ZIP und Debian-Paket erzeugt
-- leere Grundinstallation und Port 80 umgesetzt
-- Beta-1-Dateien nach GitHub übertragen
-- Quellcode und Paketinhalt miteinander verglichen
-- Sicherheits- und Freigabeblocker identifiziert
-- Repository für reproduzierbare Weiterentwicklung vorbereitet
+- Beta-1-Artefakte und tatsächlichen Quellstand in GitHub gesichert
+- reproduzierbaren DEB-Bau und automatisierte CI-Prüfungen eingerichtet
+- zufälligen Erstzugang, erzwungenen Passwortwechsel, scrypt und Anmeldebegrenzung umgesetzt
+- sitzungsgebundenen CSRF-Schutz und Anmeldungspflicht für Oberfläche und APIs ergänzt
+- breite Systemrechte durch einen validierenden Root-Helfer mit root-eigenen Positivlisten ersetzt
+- Programm-, Konfigurations- und Zustandsdaten sauber getrennt
+- Upload-, URL-, Paketmetadaten- und Architekturprüfung ergänzt
+- systemd, Nginx und Browserausführung gehärtet
+- Sicherheitsstatus, Installation, Architektur und verbleibende Freigabepunkte dokumentiert
 
 ## Erkenntnisse
 
 - Ein vorhandenes DEB ist nicht automatisch produktionsreif.
-- Chat-Downloads werden nicht automatisch nach GitHub übertragen.
-- Quellcode muss sichtbar und Paketbau reproduzierbar im Repository liegen.
+- Quellcode, Paketbau, Tests und Dokumentation müssen gemeinsam versioniert werden.
 - Bekannte Standardzugänge und breite sudo-Regeln sind für eine öffentliche Installation nicht vertretbar.
+- Eine enge Root-Schnittstelle begrenzt Befehle, macht untrusted Debian-Pakete aber nicht sicher.
 - Lastenheft, tatsächlicher Code und veröffentlichte Funktionsaussagen müssen klar getrennt werden.
 
 ## Übergabepunkt
 
-Die Beta 1 ist vollständig gesichert und analysiert. Als Nächstes werden die Sicherheitsblocker behoben und anschließend eine Beta 2 gebaut und getestet.
-
+Beta 2 stellt die gehärtete Sicherheitsgrundlage her und bleibt eine Testversion. Die nächsten Schwerpunkte sind das vollständige Drei-Rollen-Modell, geschützte Tokenablage, Installationsaufträge mit Vorprüfung und Rollback sowie Wiederherstellungstests.

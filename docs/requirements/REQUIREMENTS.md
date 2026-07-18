@@ -141,12 +141,12 @@ Berechtigungen MÜSSEN serverseitig geprüft werden. Das bloße Ausblenden einer
 
 - Benutzerkonten werden ausschließlich durch Administratoren angelegt, geändert, deaktiviert oder gelöscht.
 - Eine öffentliche Selbstregistrierung ist nicht vorgesehen.
-- Bei der DEB-Installation wird ein festes Standard-Administratorkonto mit festem Initialpasswort angelegt.
+- Bei der DEB-Installation wird ein Standard-Administratorkonto angelegt. Für jede Installation MUSS ein kryptografisch zufälliges Initialpasswort erzeugt und ausschließlich lokal mit restriktiven Dateirechten bereitgestellt werden.
 - Beim ersten Login MUSS das Initialpasswort zwingend geändert werden.
 - Bis zum erfolgreichen Passwortwechsel bleiben alle anderen Funktionen gesperrt.
 - Nach dem Passwortwechsel ist das Initialpasswort für dieses Konto ungültig.
 - Passwörter dürfen ausschließlich sicher gehasht gespeichert werden.
-- Das konkrete Standardkonto und Initialpasswort werden vor Freigabe des Lastenhefts festgelegt.
+- Das konkrete Standardkonto und das lokale Übergabeverfahren für das Initialpasswort werden vor Freigabe des Lastenhefts festgelegt. Ein überall identisches Initialpasswort ist nicht zulässig.
 
 ## 7. Bedien- und Menükonzept
 
@@ -559,7 +559,7 @@ Version 1.0 gilt aus Sicht des Lastenhefts als abnahmefähig, wenn mindestens fo
 
 1. Das DEB-Paket lässt sich auf einem unterstützten Zielsystem installieren.
 2. Die Weboberfläche ist anschließend über Port 80 erreichbar.
-3. Das feste Administratorkonto verlangt beim ersten Login zwingend einen Passwortwechsel.
+3. Das Standard-Administratorkonto verlangt beim ersten Login zwingend einen Passwortwechsel.
 4. Die Grundinstallation zeigt keine vorinstallierten Projekte.
 5. Ein gültiges DEB-Paket kann über die Weboberfläche installiert werden.
 6. Ein Projekt kann aus einem GitHub-Release installiert werden.
@@ -578,7 +578,7 @@ Version 1.0 gilt aus Sicht des Lastenhefts als abnahmefähig, wenn mindestens fo
 
 Folgende Punkte werden im weiteren Lastenheft gemeinsam konkretisiert:
 
-1. konkreter Benutzername und konkretes Initialpasswort des Standard-Administratorkontos
+1. konkreter Benutzername des Standard-Administratorkontos und endgültiges lokales Ausgabe- beziehungsweise Übergabeverfahren für das zufällige Initialpasswort
 2. unterstützte Debian-, Raspberry-Pi-OS- und Architekturversionen
 3. genaue Sichtbarkeit nicht zugewiesener, aber eventuell freigegebener Projekte für Projektverwalter
 4. Speicherziele, Zeitpläne und Aufbewahrung von Backups

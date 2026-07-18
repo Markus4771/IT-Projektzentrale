@@ -16,6 +16,7 @@ trap cleanup EXIT
 mkdir -p \
     "$PACKAGE_ROOT/DEBIAN" \
     "$PACKAGE_ROOT/opt/it-projektzentrale" \
+    "$PACKAGE_ROOT/usr/lib/it-projektzentrale" \
     "$PACKAGE_ROOT/etc/nginx/sites-available" \
     "$PACKAGE_ROOT/etc/systemd/system" \
     "$ROOT_DIR/dist"
@@ -34,6 +35,10 @@ install -m 0644 "$ROOT_DIR/nginx/it-projektzentrale.conf" \
     "$PACKAGE_ROOT/etc/nginx/sites-available/it-projektzentrale.conf"
 install -m 0644 "$ROOT_DIR/systemd/it-projektzentrale.service" \
     "$PACKAGE_ROOT/etc/systemd/system/it-projektzentrale.service"
+install -m 0755 "$ROOT_DIR/scripts/itpz-helper" \
+    "$PACKAGE_ROOT/usr/lib/it-projektzentrale/itpz-helper"
+install -m 0700 "$ROOT_DIR/scripts/itpz-helper" \
+    "$PACKAGE_ROOT/usr/lib/it-projektzentrale/itpz-helper-worker"
 
 sed "s/@DEBIAN_VERSION@/$DEBIAN_VERSION/" "$ROOT_DIR/debian/control.in" \
     > "$PACKAGE_ROOT/DEBIAN/control"
@@ -51,4 +56,3 @@ fi
 dpkg-deb --root-owner-group --build "$PACKAGE_ROOT" "$ROOT_DIR/dist/$PACKAGE_NAME"
 sha256sum "$ROOT_DIR/dist/$PACKAGE_NAME" > "$ROOT_DIR/dist/$PACKAGE_NAME.sha256"
 echo "$ROOT_DIR/dist/$PACKAGE_NAME"
-

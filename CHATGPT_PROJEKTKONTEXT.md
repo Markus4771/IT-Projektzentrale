@@ -4,12 +4,12 @@
 
 - Projekt: IT-Projektzentrale
 - Repository: `Markus4771/IT-Projektzentrale`
-- aktuelle Anwendungsversion: `1.0.0-beta.1`
-- Debian-Version: `1.0.0~beta1`
+- aktuelle Anwendungsversion: `1.0.0-beta.2`
+- Debian-Version: `1.0.0~beta2`
 - Paketname und Dienst: `it-projektzentrale`
 - Standard-Port: 80 über Nginx
 - Anwendung: FastAPI/Uvicorn auf `127.0.0.1:8000`
-- Datenbank der Beta 1: SQLite
+- Datenbank: SQLite unter `/var/lib/it-projektzentrale/data`
 
 ## Projektziel
 
@@ -17,13 +17,13 @@ Die IT-Projektzentrale soll die zentrale Empfangs-, Installations- und Verwaltun
 
 ## Tatsächlicher Stand
 
-Beta 1 enthält eine funktionsfähige Grundanwendung mit Projektverwaltung, Dashboard, DEB-Upload, GitHub-/Gitea-Releaseabruf, Paketinstallation, Dienststeuerung, Logs, Backups, Manifesten und Systemübersicht. Quellcode, Webtemplates, Nginx- und systemd-Konfiguration sowie ein Debian-Paket sind vorhanden.
+Beta 2 enthält die Grundanwendung aus Beta 1 sowie einen sicheren Erstlogin, erzwungenen Passwortwechsel, scrypt-Passworthashes, CSRF-Schutz, Anmeldebegrenzung, geschützte APIs, einen validierenden Root-Helfer, getrennte Datenpfade und erweiterte Paketprüfungen.
 
-Der Funktionsstand ist kleiner als das Lastenheft. Insbesondere fehlen das vollständige Rollenmodell, erzwungener Erstkennwortwechsel, sichere Geheimnisverwaltung, umfassende Paketvorprüfung, verlässlicher Rollback und vollständige Backup-Wiederherstellung.
+Der Funktionsstand ist kleiner als das Lastenheft. Insbesondere fehlen das vollständige Rollenmodell, sichere Geheimnisverwaltung, umfassende Paketvorprüfung, verlässlicher Rollback und vollständige Backup-Wiederherstellung.
 
 ## Sicherheitsstatus
 
-Beta 1 besitzt bekannte Freigabeblocker. Sie darf nur in einem abgeschotteten Testsystem eingesetzt werden. Maßgeblich ist `docs/security/SECURITY_REVIEW_1.0.0-beta.1.md`.
+Beta 2 ist ein gehärteter Teststand, aber wegen noch fehlendem vollständigem Rollenmodell, Rollback und Wiederherstellung noch nicht produktionsreif. Maßgeblich ist `docs/security/SECURITY_REVIEW_1.0.0-beta.2.md`.
 
 ## Arbeitsweise
 
@@ -33,4 +33,3 @@ Beta 1 besitzt bekannte Freigabeblocker. Sie darf nur in einem abgeschotteten Te
 - Paketinstallationen und Dienstaktionen besonders restriktiv behandeln.
 - Geheimnisse niemals in Repository, Oberfläche, URL oder Protokoll schreiben.
 - Jede Version benötigt synchronisierte Anwendung, Paketmetadaten, Changelog, Dokumentation und Prüfsumme.
-

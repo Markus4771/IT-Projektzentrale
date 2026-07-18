@@ -2,22 +2,47 @@
 
 ## Aktueller Stand
 
-`1.0.0-beta.1` ist als Debian-Paket vorhanden, aber wegen bekannter Sicherheitsblocker nur für ein abgeschottetes Testsystem vorgesehen. Nicht direkt auf einem öffentlich erreichbaren oder produktiven Server installieren.
+`1.0.0-beta.2` ist ein gehärteter Teststand. Zuerst auf einem abgeschotteten Debian-Testsystem prüfen; eine Produktivfreigabe besteht noch nicht.
 
-## Lokale Testinstallation
-
-Nach dem geprüften Download:
+## Paket aus dem Quellcode bauen
 
 ```bash
-echo "6de66c1180931e1a34cbd79e4401a21153b17bde21e6efb6dc06d17423efbcdd  it-projektzentrale_1.0.0-beta.1_all.deb" | sha256sum -c -
-sudo apt install ./it-projektzentrale_1.0.0-beta.1_all.deb
+git clone https://github.com/Markus4771/IT-Projektzentrale.git
+cd IT-Projektzentrale
+bash scripts/build_deb.sh
+sha256sum -c dist/it-projektzentrale_1.0.0-beta.2_all.deb.sha256
+sudo apt install ./dist/it-projektzentrale_1.0.0-beta.2_all.deb
 ```
 
-Anschließend ist die Anwendung grundsätzlich unter `http://<SERVER-IP>/` vorgesehen.
+Alternativ führt `sudo bash install.sh` Paketbau, Prüfsummenprüfung und Installation aus.
 
-## Späterer öffentlicher Installationsweg
+Nach der Installation:
 
-Produktiv freigegebene Pakete sollen als GitHub-Release mit SHA-256-Prüfsumme veröffentlicht werden:
+```bash
+sudo cat /root/it-projektzentrale-initial-password
+```
+
+Anschließend `http://<SERVER-IP>/` öffnen, mit dem angezeigten Initialzugang anmelden und sofort ein eigenes Passwort mit mindestens 12 Zeichen festlegen.
+
+Nach erfolgreichem Passwortwechsel kann die dann ungültige Übergabedatei entfernt werden:
+
+```bash
+sudo rm /root/it-projektzentrale-initial-password
+```
+
+Port 80 ist für ein abgeschottetes Testnetz vorgesehen. Vor einem Betrieb über öffentliche oder nicht vertrauenswürdige Netze muss HTTPS eingerichtet und `ITPZ_HTTPS_ONLY=1` in `/etc/it-projektzentrale.conf` gesetzt werden.
+
+## Upgrade von Beta 1
+
+Die Beta 2 übernimmt vorhandene Projekt- und Paketdaten aus `/opt/it-projektzentrale` nach `/var/lib/it-projektzentrale`. Der unsichere Beta-1-Initialzugang `admin/admin` wird durch einen zufälligen Initialzugang ersetzt, wenn noch kein sicherer Benutzerbestand vorhanden ist.
+
+Vor dem Upgrade ein Systembackup erstellen und die Migration zunächst auf einem Testsystem prüfen.
+
+Installiere ausschließlich selbst gebaute oder anderweitig vertrauenswürdig bezogene Debian-Pakete. Ein DEB kann während der Installation Code mit Root-Rechten ausführen.
+
+## Späterer öffentlicher Release-Weg
+
+Freigegebene Pakete sollen als GitHub-Release mit Prüfsumme veröffentlicht werden:
 
 ```bash
 wget https://github.com/Markus4771/IT-Projektzentrale/releases/download/v<VERSION>/it-projektzentrale_<VERSION>_<ARCHITEKTUR>.deb
@@ -26,13 +51,10 @@ sha256sum -c SHA256SUMS
 sudo apt install ./it-projektzentrale_<VERSION>_<ARCHITEKTUR>.deb
 ```
 
-Ein Repository-Upload im Branch `main` ersetzt kein geprüftes GitHub-Release.
-
 ## Deinstallation
 
 ```bash
 sudo apt remove it-projektzentrale
 ```
 
-Eine vollständige Entfernung einschließlich Konfiguration und Daten muss vor Version 1.0 separat geprüft und dokumentiert werden.
-
+Konfiguration und Daten bleiben bei `remove` erhalten. Eine vollständige Entfernung erfolgt erst nach geprüftem Backup über `sudo apt purge it-projektzentrale`.

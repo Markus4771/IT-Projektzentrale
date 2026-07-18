@@ -10,14 +10,14 @@
 
 ## Phase 1 – Beta 2: Sicherheitsgrundlage
 
-- [ ] Initialkennwort und erzwungenen Passwortwechsel sicher umsetzen
+- [x] Initialkennwort und erzwungenen Passwortwechsel sicher umsetzen
 - [ ] Benutzer und Rollen serverseitig umsetzen
-- [ ] CSRF-Schutz und Anmeldebegrenzung ergänzen
-- [ ] privilegierten Paket- und Diensthelfer mit Positivlisten einführen
+- [x] CSRF-Schutz und Anmeldebegrenzung ergänzen
+- [x] privilegierten Paket- und Diensthelfer mit Positivlisten einführen
 - [ ] Geheimnisse geschützt speichern
-- [ ] API-Zugriff absichern
-- [ ] Eingaben, URLs und Uploadgrößen vollständig validieren
-- [ ] automatisierte Sicherheits- und Integrationstests ergänzen
+- [x] API-Zugriff absichern
+- [x] Eingaben, URLs und Uploadgrößen grundlegend validieren
+- [x] automatisierte Sicherheits- und Integrationstests ergänzen
 
 ## Phase 2 – Lastenheft vollständig umsetzen
 
@@ -35,4 +35,3 @@
 - [ ] Abnahme-, Update-, Wiederherstellungs- und Deinstallationstests
 - [ ] Sicherheitsfreigabe
 - [ ] GitHub-Release mit DEB, ZIP, Prüfsummen und Installationsanleitung
-

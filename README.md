@@ -2,9 +2,9 @@
 
 Die **IT-Projektzentrale** ist eine deutschsprachige Weboberfläche zum Anzeigen, Installieren, Aktualisieren und Verwalten eigener IT-Projekte auf Debian-basierten Systemen.
 
-> **Aktueller Softwarestand:** `1.0.0-beta.1` – technischer Teststand, nicht für einen öffentlich erreichbaren oder produktiven Server freigegeben.
+> **Aktueller Softwarestand:** `1.0.0-beta.2` – gehärteter Teststand, noch nicht für den Produktivbetrieb freigegeben.
 
-## Vorhandener Funktionsstand der Beta 1
+## Vorhandener Funktionsstand der Beta 2
 
 - leere Grundinstallation ohne Demo- oder Beispielprojekte
 - Dashboard mit installierten Projekten und Direktlinks
@@ -18,20 +18,21 @@ Die **IT-Projektzentrale** ist eine deutschsprachige Weboberfläche zum Anzeigen
 - JSON-Endpunkte unter `/api/v1/projects` und `/api/v1/system`
 - Nginx auf Port 80 und systemd-Dienst
 
-Der genaue fachliche Zielumfang für Version 1.0 steht im [Lastenheft](docs/requirements/REQUIREMENTS.md). Die Beta 1 erfüllt dieses Lastenheft noch nicht vollständig.
+Der genaue fachliche Zielumfang für Version 1.0 steht im [Lastenheft](docs/requirements/REQUIREMENTS.md). Die Beta 2 erfüllt dieses Lastenheft noch nicht vollständig.
 
-## Sicherheitsstatus
+## Sicherheitsverbesserungen in Beta 2
 
-Die Bestandsprüfung der hochgeladenen Beta 1 hat mehrere Freigabeblocker ergeben:
+- zufälliges Initialpasswort pro Installation und erzwungener Passwortwechsel
+- scrypt-Passworthashes und begrenzte Anmeldeversuche
+- sitzungsgebundener CSRF-Schutz für verändernde Webaktionen
+- geschützte Sitzungen und Anmeldungspflicht für Dashboard und APIs
+- validierender Root-Helfer und root-only systemd-Worker statt direkter breiter `apt-get`- und `systemctl`-Rechte
+- getrennte Programm- und Zustandsdaten unter `/opt` und `/var/lib`
+- begrenzte, gestreamte Uploads sowie Paketnamen- und Architekturprüfung
+- atomare Ablage geprüfter Uploads, root-eigene Helfer-Positivlisten und Browser-Sicherheitsheader
+- gehärteter systemd-Dienst und reduzierte Nginx-Uploadgröße
 
-- bekanntes Initialkennwort `admin/admin` ohne erzwungenen Wechsel
-- noch keine vollständige Benutzer- und Rollenverwaltung
-- kein vollständiger CSRF-Schutz
-- zu weit gefasste sudo-Regeln für Paket- und Dienstaktionen
-- Tokens werden noch unverschlüsselt in der lokalen SQLite-Datenbank gespeichert
-- fehlende Paket-, Konflikt-, Architektur-, Speicherplatz- und Rollback-Prüfungen
-
-Details stehen in [docs/security/SECURITY_REVIEW_1.0.0-beta.1.md](docs/security/SECURITY_REVIEW_1.0.0-beta.1.md). Die Beta 1 höchstens in einem abgeschotteten Testsystem verwenden.
+Noch offen sind insbesondere das vollständige Drei-Rollen-Modell, verschlüsselte Tokenablage, Rollback und vollständige Wiederherstellung. Details stehen in [docs/security/SECURITY_REVIEW_1.0.0-beta.2.md](docs/security/SECURITY_REVIEW_1.0.0-beta.2.md).
 
 ## Repository-Inhalt
 
@@ -43,11 +44,11 @@ Details stehen in [docs/security/SECURITY_REVIEW_1.0.0-beta.1.md](docs/security/
 - `docs/security/` – Sicherheitsprüfung
 - `.github/workflows/ci.yml` – Syntax-, Paketbau- und Konsistenzprüfung
 
-Die zusätzlich hochgeladenen Dateien `it-projektzentrale_1.0.0-beta.1_all.deb` und `IT-Projektzentrale_1.0.0-beta.1.zip` dokumentieren den ursprünglichen Beta-1-Stand. Künftige Pakete sollen als GitHub-Release mit Prüfsumme veröffentlicht werden.
+Die zusätzlich hochgeladenen Beta-1-Dateien dokumentieren nur den ursprünglichen Stand. Künftige Pakete sollen aus dem aktuellen Quellcode gebaut und als GitHub-Release mit Prüfsumme veröffentlicht werden.
 
 ## Installation
 
-Die aktuelle Testinstallation und der geplante öffentliche Release-Weg sind in [docs/INSTALLATION.md](docs/INSTALLATION.md) beschrieben. Für einen produktiven Server ist die Beta 1 nicht freigegeben.
+Die Testinstallation und der geplante öffentliche Release-Weg sind in [docs/INSTALLATION.md](docs/INSTALLATION.md) beschrieben.
 
 ## Dokumentation
 
@@ -65,4 +66,3 @@ Die aktuelle Testinstallation und der geplante öffentliche Release-Weg sind in 
 ## Repository-Regel
 
 GitHub ist die maßgebliche Projektquelle. Zugangsdaten, Tokens, Passwörter, Datenbanken, Backups, Protokolle und produktive Konfigurationen dürfen niemals eingecheckt werden.
-
