@@ -1,0 +1,10 @@
+{% extends 'base.html' %}{% block content %}
+<h1>{{ project.name }}</h1><p class="lead">{{ project.description }}</p>{% if message %}<div class="notice">{{ message }}</div>{% endif %}
+<div class="stats"><div><b>{{ installed or 'Nicht installiert' }}</b><span>Installierte Version</span></div><div><b>{{ service }}</b><span>Dienststatus</span></div><div><b>{{ project.version }}</b><span>Projektversion</span></div></div>
+<section class="panel"><p><b>Status:</b> {{ project.status }}</p><p><b>Paket:</b> {{ project.package_name or 'nicht hinterlegt' }}</p><p><b>Dienst:</b> {{ project.service_name or 'nicht hinterlegt' }}</p>
+{% if project.project_url %}<a class="button" href="{{ project.project_url }}" target="_blank" rel="noopener">Projekt öffnen</a>{% endif %}
+{% if project.repo_url %}<a class="button secondary" href="{{ project.repo_url }}" target="_blank" rel="noopener">Repository</a>{% endif %}
+{% if logged_in and project.service_name %}<div class="actions"><form method="post" action="/projects/{{ project.id }}/service/start"><button>Starten</button></form><form method="post" action="/projects/{{ project.id }}/service/restart"><button>Neustarten</button></form><form method="post" action="/projects/{{ project.id }}/service/stop"><button class="danger">Stoppen</button></form><a class="button secondary" href="/projects/{{ project.id }}/logs">Logs</a></div>{% endif %}
+{% if logged_in %}<div class="actions"><form method="post" action="/projects/{{ project.id }}/backup"><button>Backup erstellen</button></form><a class="button secondary" href="/projects/{{ project.id }}/export">Manifest exportieren</a>{% if installed %}<form method="post" action="/projects/{{ project.id }}/uninstall" onsubmit="return confirm('Anwendung wirklich deinstallieren?')"><button class="danger">Deinstallieren</button></form>{% endif %}</div>{% endif %}
+</section>
+<h2>Verfügbare Pakete</h2>{% for p in packages %}<article class="notice"><b>{{ p.filename }}</b> · Version {{ p.version }}<br><small>SHA256: {{ p.sha256 }}</small><br><a href="/packages/{{ p.filename }}">Herunterladen</a></article>{% else %}<p>Noch kein Paket hinterlegt.</p>{% endfor %}{% endblock %}
