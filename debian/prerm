@@ -1,0 +1,8 @@
+#!/bin/sh
+set -e
+if [ "$1" = remove ] || [ "$1" = deconfigure ]; then
+    systemctl stop it-projektzentrale 2>/dev/null || true
+    systemctl disable it-projektzentrale 2>/dev/null || true
+fi
+exit 0
+
