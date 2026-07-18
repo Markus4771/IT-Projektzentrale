@@ -1,0 +1,23 @@
+{% extends 'base.html' %}{% block content %}
+<h1>Installation</h1>
+<p>Debian-Pakete können manuell hochgeladen oder aus GitHub- und Gitea-Releases abgerufen werden.</p>
+{% if message %}<div class="notice success">{{ message }}</div>{% endif %}
+{% if error %}<div class="notice error-box">{{ error }}</div>{% endif %}
+<section class="grid">
+{% for p in projects %}
+<article class="card">
+<h2>{{ p.name }}</h2>
+<p>Installiert: <b>{{ p.installed_version or 'Nein' }}</b></p>
+<p>Verfügbar: <b>{{ p.latest_version or 'Kein Paket' }}</b></p>
+{% if p.latest_source %}<p>Quelle des Pakets: {{ p.latest_source|upper }}</p>{% endif %}
+{% if p.source_provider %}<p>Paketquelle: <b>{{ p.source_provider|upper }}</b><br><small>{{ p.source_repository }}</small></p>{% endif %}
+{% if p.source_error %}<p class="error">Letzter Abruf: {{ p.source_error }}</p>{% endif %}
+{% if logged_in and p.source_provider %}<form method="post" action="/installation/{{ p.id }}/refresh"><button class="secondary">Neuestes Release abrufen</button></form>{% endif %}
+{% if p.latest_file %}
+<a class="button secondary" href="/packages/{{ p.latest_file }}">DEB herunterladen</a>
+{% if logged_in %}<form method="post" action="/installation/{{ p.id }}/install"><button>Installieren / aktualisieren</button></form>{% endif %}
+{% endif %}
+</article>
+{% endfor %}
+</section>
+{% endblock %}
