@@ -18,7 +18,7 @@ Die IT-Projektzentrale unterstützt mehrere Benutzer und verwendet folgendes Rol
 
 - **Administrator:** vollständige administrative Kontrolle über die IT-Projektzentrale.
 - **Projektverwalter:** Verwaltung der dafür freigegebenen Projekte ohne Zugriff auf die Benutzer- und Rollenverwaltung oder auf übergreifende Sicherheitseinstellungen.
-- **Benutzer mit Lesezugriff:** Anzeige des Dashboards, der freigegebenen Projektinformationen und der Projektverknüpfungen ohne verändernde Verwaltungsaktionen.
+- **Benutzer mit Lesezugriff:** Anzeige des Dashboards ausschließlich mit den für den Benutzer freigegebenen Projekten, Projektinformationen und Projektverknüpfungen ohne verändernde Verwaltungsaktionen.
 
 Berechtigungen werden nach dem Prinzip der geringsten erforderlichen Rechte vergeben. Für verändernde Projektaktionen gilt folgende Festlegung:
 
@@ -26,6 +26,7 @@ Berechtigungen werden nach dem Prinzip der geringsten erforderlichen Rechte verg
 - Projektverwalter dürfen ausschließlich die ihnen zugewiesenen Projekte installieren, aktualisieren und löschen.
 - Die Zuweisung von Projekten an Projektverwalter wird ausschließlich durch Administratoren vorgenommen.
 - Benutzer mit Lesezugriff dürfen keine Projekte installieren, aktualisieren, löschen oder konfigurieren.
+- Benutzer mit Lesezugriff sehen ausschließlich die Projekte, die ein Administrator für sie freigegeben hat; nicht freigegebene Projekte werden vollständig ausgeblendet.
 - Die Benutzer- und Rollenverwaltung sowie übergreifende Sicherheitseinstellungen bleiben ausschließlich Administratoren vorbehalten.
 
 Die Verwaltungsrechte eines Projektverwalters gelten nicht für nicht zugewiesene Projekte. Weitere Einzelrechte werden im weiteren Verlauf des Lastenhefts festgelegt.
