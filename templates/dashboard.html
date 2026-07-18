@@ -1,0 +1,17 @@
+{% extends 'base.html' %}{% block content %}
+<section class="hero dashboard-hero"><div><h1>Deine installierten Projekte</h1><p>Öffne Anwendungen direkt oder wechsle zur zentralen Verwaltung.</p></div>{% if projects %}<label class="dashboard-search"><span>Projekt suchen</span><input id="project-search" type="search" placeholder="Name, Kategorie oder Status"></label>{% endif %}</section>
+<section class="stats"><article><b>{{ stats.installed }}</b><span>Installierte Projekte</span></article><article><b>{{ stats.active_services }}</b><span>Dienste aktiv</span></article><article><b>{{ stats.updates }}</b><span>Updates verfügbar</span></article></section>
+{% if projects %}
+<div class="section-title"><h2>Schnellzugriff</h2><small>Favoriten werden zuerst angezeigt.</small></div>
+<section class="grid project-launcher" id="project-grid">
+{% for p in projects %}<article class="card project-tile" data-search="{{ p.name|lower }} {{ p.category|lower }} {{ p.status|lower }} {{ p.service_state|lower }}">
+<div class="tile-head"><div><span class="badge">{{ p.category }}</span>{% if p.favorite %}<span class="favorite-mark" title="Favorit">★</span>{% endif %}</div><span class="service-pill service-{{ p.service_state }}">{% if p.service_state == 'läuft' %}● Läuft{% elif p.service_state == 'failed' %}● Fehler{% elif p.service_state == 'inactive' %}● Gestoppt{% else %}● {{ p.service_state|capitalize }}{% endif %}</span></div>
+<h3>{{ p.name }}</h3><p>{{ p.description or 'Keine Beschreibung hinterlegt.' }}</p>
+<div class="project-meta"><span>Installiert: <b>{{ p.installed_version }}</b></span>{% if p.update_available %}<span class="update-hint">Update {{ p.latest_version }} verfügbar</span>{% else %}<span>Aktuell</span>{% endif %}</div>
+<div class="tile-actions">{% if p.project_url %}<a class="button launch" href="{{ p.project_url }}" target="_blank" rel="noopener">Öffnen</a>{% else %}<span class="button disabled" title="In der Administration eine Projekt-Webseite hinterlegen">Keine Webadresse</span>{% endif %}<a class="button secondary" href="/projects/{{ p.slug }}">Verwalten</a>{% if logged_in %}<form method="post" action="/projects/{{ p.id }}/favorite"><button class="icon-button" title="{% if p.favorite %}Aus Favoriten entfernen{% else %}Als Favorit markieren{% endif %}">{% if p.favorite %}★{% else %}☆{% endif %}</button></form>{% endif %}</div>
+</article>{% endfor %}
+</section><p id="search-empty" class="empty search-empty" hidden>Kein installiertes Projekt passt zur Suche.</p>
+{% else %}<section class="empty"><h2>Noch keine installierten Projekte</h2><p>Installiere zuerst ein angelegtes Projekt. Danach erscheint es hier automatisch als Schnellzugriff.</p>{% if logged_in %}<a class="button" href="/installation">Zur Installation</a><a class="button secondary" href="/admin">Projekt anlegen</a>{% else %}<a class="button" href="/admin/login">Als Administrator anmelden</a>{% endif %}</section>{% endif %}
+{% if news %}<h2>Neuigkeiten</h2>{% for n in news %}<article class="notice"><b>{{ n.title }}</b><p>{{ n.body }}</p></article>{% endfor %}{% endif %}
+{% if projects %}<script>const q=document.getElementById('project-search'),cards=[...document.querySelectorAll('.project-tile')],empty=document.getElementById('search-empty');q.addEventListener('input',()=>{const term=q.value.trim().toLocaleLowerCase('de');let shown=0;cards.forEach(card=>{const visible=card.dataset.search.includes(term);card.hidden=!visible;if(visible)shown++});empty.hidden=shown!==0});</script>{% endif %}
+{% endblock %}
