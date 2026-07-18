@@ -219,7 +219,24 @@ Der Installationsbereich MUSS drei Quellen unterstützen:
 2. GitHub
 3. Gitea
 
-Vor einer Installation MUSS die Anwendung mindestens Quelle, Paketname, Version, Architektur und erkannte Abhängigkeiten anzeigen. Die Installation beginnt erst nach einer ausdrücklichen Bestätigung.
+Beim lokalen Upload wählt der Benutzer eine DEB-Datei von seinem Computer aus. Bei GitHub und Gitea führt die Oberfläche schrittweise durch die Auswahl von Verbindung, Repository, Release beziehungsweise Version und passender DEB-Datei.
+
+Vor einer Installation MUSS die Anwendung mindestens anzeigen und prüfen:
+
+- Quelle und Repository
+- Paketname und Version
+- Zielarchitektur
+- erkannte Abhängigkeiten
+- bereits installierte Versionen
+- Paket- und Abhängigkeitskonflikte
+- verfügbaren Speicherplatz
+- erkennbare Auswirkungen auf das System
+
+Die Installation beginnt erst nach einer ausdrücklichen Bestätigung. Während des Vorgangs werden aktueller Schritt, Fortschritt, Warnungen und Fehler verständlich dargestellt.
+
+Nach erfolgreicher Installation wird das Projekt automatisch in die Projektverwaltung aufgenommen. Webadresse, Systemdienst, Beschreibung, Logo und Benutzerfreigaben können anschließend ergänzt oder korrigiert werden. Sobald eine Projekt-Webadresse hinterlegt ist, erscheint das Projekt mit „Öffnen“ und „Verwalten“ im Dashboard.
+
+Administratoren dürfen neue Projekte anlegen und installieren. Projektverwalter dürfen Installationen ausschließlich für bereits angelegte und ihnen zugewiesene Projekteinträge durchführen.
 
 ### 7.4 Updates
 
@@ -308,7 +325,7 @@ Die Grundinstallation MUSS ohne vorinstallierte Projekte ausgeliefert werden. Be
 
 ### PRJ-002 – Projekt anlegen
 
-Ein Administrator MUSS einen neuen Projekteintrag anlegen können. Ob Projektverwalter selbst neue Projekteinträge anlegen dürfen, bleibt noch festzulegen.
+Ausschließlich Administratoren dürfen neue Projekteinträge anlegen. Projektverwalter dürfen ein bereits angelegtes und ihnen zugewiesenes Projekt installieren und verwalten.
 
 ### PRJ-003 – Projekt bearbeiten
 
@@ -338,23 +355,24 @@ Berechtigte Benutzer MÜSSEN eine zuvor exportierte Projektdefinition importiere
 
 ### INS-001 – Lokaler DEB-Upload
 
-Berechtigte Benutzer MÜSSEN ein DEB-Paket über die Weboberfläche hochladen und installieren können.
+Berechtigte Benutzer MÜSSEN ein DEB-Paket über die Weboberfläche von ihrem Computer hochladen und installieren können. Für Version 1.0 werden als Installationspakete ausschließlich DEB-Dateien unterstützt.
 
 ### INS-002 – GitHub als Quelle
 
 Die Anwendung MUSS öffentliche und private GitHub-Repositories als Projektquelle unterstützen. Bei privaten Repositories wird ein sicher gespeicherter Token verwendet.
 
-Die Anwendung SOLL:
+Die Anwendung SOLL den Benutzer durch folgende Auswahl führen:
 
-- Releases abrufen,
-- geeignete DEB-Dateien eines Releases anzeigen,
-- Version und Architektur erkennen,
-- eine ausgewählte Release-Datei installieren,
-- die Quelle für spätere Updates speichern.
+1. GitHub-Verbindung
+2. Repository
+3. Release beziehungsweise Version
+4. geeignete DEB-Datei
+
+Anschließend soll sie Version und Architektur erkennen, die ausgewählte Release-Datei installieren und die Quelle für spätere Updates speichern.
 
 ### INS-003 – Gitea als Quelle
 
-Die Anwendung MUSS Gitea-Repositories entsprechend dem GitHub-Ablauf unterstützen. Serveradresse, Repository und Zugangstoken müssen konfigurierbar sein.
+Die Anwendung MUSS Gitea-Repositories entsprechend dem GitHub-Ablauf unterstützen. Serveradresse, Verbindung, Repository, Release beziehungsweise Version, DEB-Datei und Zugangstoken müssen konfigurierbar beziehungsweise auswählbar sein.
 
 ### INS-004 – Verbindungsprüfung
 
@@ -370,16 +388,23 @@ Vor der Installation MUSS das Paket geprüft werden. Mindestens folgende Informa
 - Zielarchitektur
 - Abhängigkeiten
 - Installationsquelle
+- bereits installierte Paketversion
+- Paket- und Abhängigkeitskonflikte
+- verfügbarer Speicherplatz
 
 Nicht unterstützte oder offensichtlich ungültige Pakete dürfen nicht installiert werden.
 
 ### INS-006 – Bestätigung und Fortschritt
 
-Die Installation MUSS ausdrücklich bestätigt werden. Während der Installation werden Status und verständliche Fortschrittsmeldungen angezeigt.
+Vor der Bestätigung MUSS die Oberfläche die erkannten Paketinformationen, Warnungen und die vorgesehenen Änderungen anzeigen. Die Installation MUSS ausdrücklich bestätigt werden. Während der Installation werden aktueller Schritt, Status und verständliche Fortschrittsmeldungen angezeigt.
 
 ### INS-007 – Ergebnis und Protokoll
 
-Nach Abschluss MUSS eindeutig angezeigt werden, ob die Installation erfolgreich war. Fehlerausgaben werden protokolliert, dürfen aber keine Passwörter oder Tokens enthalten.
+Nach Abschluss MUSS eindeutig angezeigt werden, ob die Installation erfolgreich war. Fehlerausgaben werden protokolliert, dürfen aber keine Passwörter oder Tokens enthalten. Eine fehlgeschlagene Installation darf keinen fälschlich als erfolgreich installierten Projekteintrag erzeugen.
+
+### INS-008 – Aufnahme in die Projektverwaltung
+
+Nach erfolgreicher Installation MUSS das Projekt automatisch in die Projektverwaltung aufgenommen werden. Erkannte Paketdaten und die Installationsquelle werden übernommen. Webadresse, Systemdienst, Beschreibung, Logo und Freigaben können anschließend ergänzt werden. Mit hinterlegter Webadresse erscheint das Projekt automatisch im Dashboard.
 
 ## 10. Aktualisierung von Projekten
 
@@ -555,17 +580,16 @@ Folgende Punkte werden im weiteren Lastenheft gemeinsam konkretisiert:
 
 1. konkreter Benutzername und konkretes Initialpasswort des Standard-Administratorkontos
 2. unterstützte Debian-, Raspberry-Pi-OS- und Architekturversionen
-3. ob Projektverwalter neue Projekteinträge selbst anlegen dürfen
-4. genaue Sichtbarkeit nicht zugewiesener, aber eventuell freigegebener Projekte für Projektverwalter
-5. Speicherziele, Zeitpläne und Aufbewahrung von Backups
-6. Umfang der Sicherung von Daten einzelner verwalteter Projekte
-7. Verhalten bei Abhängigkeits- und Paketkonflikten
-8. verbindliche Projektmetadaten beziehungsweise eine Projektschnittstelle
-9. Art und Intervall der Erreichbarkeits- und Gesundheitsprüfungen
-10. Rücksetzverfahren nach einer fehlgeschlagenen Aktualisierung
-11. Behandlung von Projektkonfiguration und Nutzdaten bei Deinstallation
-12. Quelle und Pflege der News
-13. ob es zusätzlich eine öffentliche Ansicht ohne Anmeldung geben soll
+3. genaue Sichtbarkeit nicht zugewiesener, aber eventuell freigegebener Projekte für Projektverwalter
+4. Speicherziele, Zeitpläne und Aufbewahrung von Backups
+5. Umfang der Sicherung von Daten einzelner verwalteter Projekte
+6. Verhalten bei Abhängigkeits- und Paketkonflikten
+7. verbindliche Projektmetadaten beziehungsweise eine Projektschnittstelle
+8. Art und Intervall der Erreichbarkeits- und Gesundheitsprüfungen
+9. Rücksetzverfahren nach einer fehlgeschlagenen Aktualisierung
+10. Behandlung von Projektkonfiguration und Nutzdaten bei Deinstallation
+11. Quelle und Pflege der News
+12. ob es zusätzlich eine öffentliche Ansicht ohne Anmeldung geben soll
 
 ## 20. Weiteres Vorgehen
 
