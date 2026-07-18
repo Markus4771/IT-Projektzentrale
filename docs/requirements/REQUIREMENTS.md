@@ -23,11 +23,12 @@ Die IT-Projektzentrale unterstützt mehrere Benutzer und verwendet folgendes Rol
 Berechtigungen werden nach dem Prinzip der geringsten erforderlichen Rechte vergeben. Für verändernde Projektaktionen gilt folgende Festlegung:
 
 - Administratoren dürfen Projekte installieren, aktualisieren und löschen.
-- Projektverwalter dürfen die für sie freigegebenen Projekte installieren, aktualisieren und löschen.
+- Projektverwalter dürfen ausschließlich die ihnen zugewiesenen Projekte installieren, aktualisieren und löschen.
+- Die Zuweisung von Projekten an Projektverwalter wird ausschließlich durch Administratoren vorgenommen.
 - Benutzer mit Lesezugriff dürfen keine Projekte installieren, aktualisieren, löschen oder konfigurieren.
 - Die Benutzer- und Rollenverwaltung sowie übergreifende Sicherheitseinstellungen bleiben ausschließlich Administratoren vorbehalten.
 
-Der Geltungsbereich der Projektverwalterrechte und weitere Einzelrechte werden im weiteren Verlauf des Lastenhefts festgelegt.
+Die Verwaltungsrechte eines Projektverwalters gelten nicht für nicht zugewiesene Projekte. Weitere Einzelrechte werden im weiteren Verlauf des Lastenhefts festgelegt.
 
 ## 4. Dashboard
 
@@ -83,7 +84,7 @@ Der Geltungsbereich der Projektverwalterrechte und weitere Einzelrechte werden i
 
 ## 11. Offene Konkretisierungen
 
-- Geltungsbereich der Projektverwalterrechte und verbleibende Einzelrechte
+- Verbleibende Einzelrechte der drei Benutzerrollen
 - Unterstützte Debian- und Raspberry-Pi-OS-Versionen
 - Sicherungs- und Wiederherstellungsverfahren
 - Verhalten bei Abhängigkeitskonflikten zwischen DEB-Paketen
