@@ -21,7 +21,8 @@ def test_monitoring_has_rules_alerts_and_windows():
     for value in ("monitoring_rules", "monitoring_alerts", "monitoring_runs", "maintenance_windows", "/api/v1/monitoring"):
         assert value in source
     assert "require_admin" in source
-    assert "Webhook muss HTTPS verwenden" in source
+    assert "notification_channel == \"webhook\"" in source
+    assert "^https://" in source
     assert "Alarmregel anlegen" in template
     assert "Wartungsfenster" in template
 
