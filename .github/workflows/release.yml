@@ -1,0 +1,86 @@
+name: Debian Release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - version.txt
+      - app/**
+      - scripts/build_deb.sh
+      - debian/**
+      - .github/workflows/release.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Version bestimmen
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION=$(tr -d '[:space:]' < version.txt)
+          test -n "$VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Tests und Syntaxprüfung
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install -r requirements.txt -r requirements-dev.txt
+          python3 -m py_compile app/main.py app/v110.py scripts/itpz-helper
+          python3 -m pytest -q
+          bash -n install.sh scripts/build_deb.sh
+          sh -n debian/postinst debian/prerm debian/postrm
+
+      - name: Debian-Paket bauen
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/build_deb.sh
+          VERSION='${{ steps.version.outputs.version }}'
+          PACKAGE="dist/it-projektzentrale_${VERSION}_all.deb"
+          test -f "$PACKAGE"
+          dpkg-deb --info "$PACKAGE"
+          cp "$PACKAGE" dist/it-projektzentrale_latest_all.deb
+          sha256sum dist/it-projektzentrale_latest_all.deb > dist/it-projektzentrale_latest_all.deb.sha256
+
+      - name: Release erstellen oder aktualisieren
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" \
+              "dist/it-projektzentrale_${VERSION}_all.deb" \
+              "dist/it-projektzentrale_${VERSION}_all.deb.sha256" \
+              "dist/it-projektzentrale_latest_all.deb" \
+              "dist/it-projektzentrale_latest_all.deb.sha256" \
+              --clobber
+          else
+            git tag "$TAG" "$GITHUB_SHA"
+            git push origin "$TAG"
+            gh release create "$TAG" \
+              "dist/it-projektzentrale_${VERSION}_all.deb" \
+              "dist/it-projektzentrale_${VERSION}_all.deb.sha256" \
+              "dist/it-projektzentrale_latest_all.deb" \
+              "dist/it-projektzentrale_latest_all.deb.sha256" \
+              --title "IT-Projektzentrale ${VERSION}" \
+              --generate-notes \
+              --latest
+          fi
