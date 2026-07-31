@@ -9,17 +9,20 @@
 </head>
 <body>
 <header>
-  <div><strong>IT-Projektzentrale</strong><small> Zentrale Verwaltung deiner Projekte</small></div>
+  <div><strong>IT-Projektzentrale</strong><small> Plattform für Projekte und Infrastruktur</small></div>
   <nav>
     {% if logged_in %}
-      <a href="/">Dashboard</a><a href="/projects">Projekte</a><a href="/marketplace">Marketplace</a><a href="/app-store">App Store</a><a href="/software-center">Software-Center</a><a href="/plugins">Plugins</a><a href="/servers">Server</a><a href="/monitoring">Monitoring</a><a href="/compose">Docker Compose</a><a href="/infrastructure">Infrastruktur</a><a href="/maintenance">Backup & Updates</a>
-      <a href="/installation">Installation</a><a href="/system">System</a>
-      {% if current_user.role == 'admin' %}<a href="/admin">Administration</a><a href="/admin/users">Benutzer</a>{% endif %}
+      <a href="/">Dashboard</a>
+      <a href="/projects">Projekte</a>
+      <a href="/installation">Installation</a>
+      <a href="/servers">Infrastruktur</a>
+      <a href="/monitoring">Monitoring</a>
+      <a href="/marketplace">Marketplace</a>
+      <a href="/maintenance">Backup & Updates</a>
+      {% if current_user.role == 'admin' %}<a href="/security">Sicherheit</a><a href="/admin">Administration</a><a href="/admin/users">Benutzer</a>{% endif %}
       <a href="/account/password">Passwort</a>
       <form method="post" action="/admin/logout" class="nav-form"><button class="link-button">Abmelden</button></form>
-    {% else %}
-      <a href="/admin/login">Anmelden</a>
-    {% endif %}
+    {% else %}<a href="/admin/login">Anmelden</a>{% endif %}
   </nav>
 </header>
 <main>{% block content %}{% endblock %}</main>
