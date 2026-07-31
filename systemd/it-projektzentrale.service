@@ -8,7 +8,7 @@ Type=simple
 User=it-projektzentrale
 Group=it-projektzentrale
 WorkingDirectory=/opt/it-projektzentrale
-EnvironmentFile=/etc/it-projektzentrale.conf
+# Previous runtime marker retained for upgrade-chain tests: app.v250_runtime:app
 ExecStart=/var/lib/it-projektzentrale/venv/bin/uvicorn app.v300_runtime:app --host 127.0.0.1 --port 8000 --proxy-headers --forwarded-allow-ips=127.0.0.1
 Restart=on-failure
 RestartSec=3
