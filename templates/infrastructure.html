@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="page-head">
+  <div><h1>Infrastruktur</h1><p>Dienste, Docker, Updates, Speicher, Netzwerk und Warnungen des lokalen Servers.</p></div>
+  <a class="button secondary" href="/servers">Serververwaltung</a>
+</section>
+{% if message %}<div class="notice success">{{ message }}</div>{% endif %}
+{% if error %}<div class="notice error-box">{{ error }}</div>{% endif %}
+
+<section class="stats infra-stats">
+  <article><b>{{ inventory.snapshot.cpu_percent if inventory.snapshot.cpu_percent is not none else '–' }} %</b><span>CPU</span></article>
+  <article><b>{{ inventory.snapshot.memory_percent if inventory.snapshot.memory_percent is not none else '–' }} %</b><span>RAM</span></article>
+  <article><b>{{ inventory.snapshot.disk_percent if inventory.snapshot.disk_percent is not none else '–' }} %</b><span>Festplatte</span></article>
+  <article><b>{{ inventory.upgradable_packages|length }}</b><span>Updates</span></article>
+  <article><b>{{ inventory.containers|length }}</b><span>Container</span></article>
+  <article><b>{{ alerts|length }}</b><span>Warnungen</span></article>
+</section>
+
+{% if alerts %}
+<section class="panel"><h2>Aktive Warnungen</h2><div class="alert-list">
+{% for alert in alerts %}<article class="infra-alert severity-{{ alert.severity }}"><strong>{{ alert.title }}</strong><p>{{ alert.details }}</p></article>{% endfor %}
+</div></section>
+{% endif %}
+
+<section class="admin-grid">
+  <article class="panel"><h2>Debian-Updates</h2><p>{{ inventory.upgradable_packages|length }} aktualisierbare Pakete.</p>
+    {% if current_user.role == 'admin' %}
+    <form method="post" action="/infrastructure/packages/upgrade"><input type="hidden" name="mode" value="safe"><button>Updates installieren</button></form>
+    {% endif %}
+    <details><summary>Paketliste</summary><pre class="logs">{{ inventory.upgradable_packages|join('\n') if inventory.upgradable_packages else 'Keine Updates gefunden.' }}</pre></details>
+  </article>
+  <article class="panel"><h2>Speicher</h2><div class="table-wrap"><table><thead><tr><th>Ziel</th><th>Quelle</th><th>Typ</th><th>Belegt</th></tr></thead><tbody>
+    {% for mount in inventory.mounts %}<tr><td>{{ mount.target }}</td><td>{{ mount.source }}</td><td>{{ mount.fstype }}</td><td>{{ mount['use%'] or '–' }}</td></tr>{% endfor %}
+  </tbody></table></div></article>
+</section>
+
+<section class="panel"><h2>systemd-Dienste</h2><div class="table-wrap"><table><thead><tr><th>Dienst</th><th>Status</th><th>Aktionen</th></tr></thead><tbody>
+{% for service in inventory.services %}<tr><td><code>{{ service.name }}</code></td><td><span class="software-state state-{{ 'ok' if service.active == 'active' else 'failed' if service.active == 'failed' else 'muted' }}">{{ service.active }}/{{ service.sub }}</span></td><td>
+{% if current_user.role == 'admin' %}{% for action in ['start','stop','restart'] %}<form class="inline" method="post" action="/infrastructure/services/{{ service.name }}/{{ action }}"><button class="secondary">{{ action }}</button></form>{% endfor %}{% endif %}
+</td></tr>{% endfor %}
+</tbody></table></div></section>
+
+<section class="panel"><h2>Docker-Container</h2>{% if inventory.containers %}<div class="table-wrap"><table><thead><tr><th>Name</th><th>Image</th><th>Status</th><th>Aktionen</th></tr></thead><tbody>
+{% for container in inventory.containers %}<tr><td>{{ container.Names }}</td><td>{{ container.Image }}</td><td>{{ container.Status }}</td><td>{% if current_user.role == 'admin' %}{% for action in ['start','stop','restart'] %}<form class="inline" method="post" action="/infrastructure/docker/{{ container.Names }}/{{ action }}"><button class="secondary">{{ action }}</button></form>{% endfor %}{% endif %}</td></tr>{% endfor %}
+</tbody></table></div>{% else %}<p>Keine Docker-Container erkannt.</p>{% endif %}</section>
+
+<section class="admin-grid">
+  <article class="panel"><h2>Netzwerk</h2>{% for interface in inventory.interfaces %}<details><summary>{{ interface.ifname }} · {{ interface.operstate }}</summary><pre>{{ interface.addr_info | tojson(indent=2) }}</pre></details>{% endfor %}</article>
+  <article class="panel"><h2>Aufgabenprotokoll</h2><div class="table-wrap"><table><thead><tr><th>ID</th><th>Aufgabe</th><th>Status</th></tr></thead><tbody>{% for task in tasks %}<tr><td>#{{ task.id }}</td><td>{{ task.task_type }} · {{ task.target }} · {{ task.action }}</td><td>{{ task.state }}</td></tr>{% endfor %}</tbody></table></div></article>
+</section>
+{% endblock %}
