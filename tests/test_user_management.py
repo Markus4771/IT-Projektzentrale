@@ -4,13 +4,13 @@ from pathlib import Path
 def test_user_management_module_is_wired_into_current_release():
     root = Path(__file__).resolve().parents[1]
     user_module = (root / "app/v120.py").read_text(encoding="utf-8")
-    runtime_module = (root / "app/v121.py").read_text(encoding="utf-8")
+    runtime_module = (root / "app/v130.py").read_text(encoding="utf-8")
     service = (root / "systemd/it-projektzentrale.service").read_text(encoding="utf-8")
 
     assert "ROLES =" in user_module
-    assert "from app.v120 import app" in runtime_module
-    assert "app.v121:app" in service
-    assert (root / "version.txt").read_text(encoding="utf-8").strip() == "1.2.1"
+    assert "from app.v121 import app" in runtime_module
+    assert "app.v130:app" in service
+    assert (root / "version.txt").read_text(encoding="utf-8").strip() == "1.3.0"
 
 
 def test_user_management_contains_safety_guards():
