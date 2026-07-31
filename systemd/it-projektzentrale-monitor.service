@@ -2,12 +2,14 @@
 Description=IT-Projektzentrale Monitoring-Worker
 After=network-online.target it-projektzentrale.service
 Wants=network-online.target
+Requires=it-projektzentrale.service
 
 [Service]
 Type=simple
 User=it-projektzentrale
 Group=it-projektzentrale
 EnvironmentFile=/etc/it-projektzentrale.conf
+ExecStartPre=/usr/bin/curl --fail --silent --show-error --retry 30 --retry-delay 1 --retry-connrefused http://127.0.0.1:8000/health
 ExecStart=/usr/lib/it-projektzentrale/itpz-monitor-worker
 Restart=always
 RestartSec=10
