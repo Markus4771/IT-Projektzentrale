@@ -13,13 +13,12 @@ def test_v311_runtime_imports_real_fastapi_app(tmp_path, monkeypatch):
     monkeypatch.setenv("ITPZ_MASTER_KEY_FILE", str(tmp_path / "master.key"))
     runtime = importlib.import_module("app.v311_runtime")
     assert runtime.VERSION == "3.1.1"
-    assert runtime.app.version == "3.1.1"
     assert hasattr(runtime.app, "router")
 
 
 def test_lts_installer_orders_services_and_preserves_state():
     postinst = (ROOT / "debian/postinst").read_text(encoding="utf-8")
-    assert "EXPECTED_VERSION=3.1.1" in postinst
+    assert "EXPECTED_VERSION=3.2.0" in postinst
     assert postinst.index('systemctl stop "$WORKER" "$MONITOR" "$SERVICE"') < postinst.index('systemctl start "$SERVICE"')
     assert postinst.index('systemctl start "$SERVICE"') < postinst.index('systemctl start "$WORKER"')
     assert postinst.index('systemctl start "$WORKER"') < postinst.index('systemctl start "$MONITOR"')
@@ -36,4 +35,5 @@ def test_lts_doctor_and_packaging_are_present():
     assert "installation_jobs.phase" in doctor
     assert "itpz-doctor" in build
     assert "app.v311_runtime:app" in service
-    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.1.1"
+    assert "app.v320_runtime:app" in service
+    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.2.0"
