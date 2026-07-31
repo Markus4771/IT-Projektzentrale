@@ -9,7 +9,8 @@ def test_user_management_module_is_wired_into_current_release():
     assert "app.v311_runtime:app" in service
     assert "app.v320_runtime:app" in service
     assert "app.v330_runtime:app" in service
-    assert (root / "version.txt").read_text(encoding="utf-8").strip() == "3.3.0"
+    assert "app.v331_runtime:app" in service
+    assert (root / "version.txt").read_text(encoding="utf-8").strip() == "3.3.1"
 
 
 def test_user_management_contains_safety_guards():

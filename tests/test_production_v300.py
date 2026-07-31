@@ -13,8 +13,9 @@ def test_v300_release_remains_in_release_chain():
     assert "app.v311_runtime:app" in service
     assert "app.v320_runtime:app" in service
     assert "app.v330_runtime:app" in service
+    assert "app.v331_runtime:app" in service
     assert "IT-Projektzentrale 3.0.1 wurde erfolgreich eingerichtet" in postinst
-    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.3.0"
+    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.3.1"
     assert "app.version = VERSION" in runtime
 
 
