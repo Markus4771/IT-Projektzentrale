@@ -1,0 +1,23 @@
+{% extends 'base.html' %}{% block content %}
+<div class="page-head"><div><span class="badge">Version {{ software_center_version }}</span><h1>Software-Center</h1><p class="lead">GitHub- und Gitea-Releases abrufen, prüfen und als Debian-Paket installieren.</p></div><a class="button secondary" href="/admin">Quellen verwalten</a></div>
+{% if message %}<div class="notice success">{{ message }}</div>{% endif %}
+{% if error %}<div class="notice error-box">{{ error }}</div>{% endif %}
+<section class="software-grid">
+{% for p in projects %}<article class="card software-card">
+<div class="tile-head"><div><span class="badge">{{ p.category }}</span><h2>{{ p.name }}</h2></div>
+{% if p.software_status == 'installed' %}<span class="software-state state-ok">Aktuell</span>{% elif p.software_status == 'update' %}<span class="software-state state-update">Update</span>{% elif p.software_status == 'ready' %}<span class="software-state state-ready">Bereit</span>{% elif p.software_status == 'source' %}<span class="software-state">Quelle eingerichtet</span>{% else %}<span class="software-state state-muted">Nicht eingerichtet</span>{% endif %}</div>
+<p>{{ p.description or 'Keine Beschreibung hinterlegt.' }}</p>
+<div class="software-versions"><div><small>Installiert</small><strong>{{ p.installed_version or '–' }}</strong></div><div><small>Verfügbar</small><strong>{{ p.latest_version or '–' }}</strong></div></div>
+{% if p.source_provider %}<p><b>{{ p.source_provider|upper }}</b> · <code>{{ p.source_repository }}</code><br><small>Letzte Prüfung: {{ p.source_last_checked or 'noch nie' }}</small></p>{% else %}<p class="error">Noch keine Releasequelle hinterlegt.</p>{% endif %}
+{% if p.source_error %}<div class="notice error-box"><small>{{ p.source_error }}</small></div>{% endif %}
+<div class="actions">
+{% if p.source_provider %}<form method="post" action="/software-center/{{ p.id }}/refresh"><button class="secondary">Release prüfen</button></form>{% endif %}
+{% if p.latest_file %}<form method="post" action="/software-center/{{ p.id }}/install" data-confirm="{{ p.name }} wirklich installieren oder aktualisieren?"><button>{% if p.installed_version %}Aktualisieren{% else %}Installieren{% endif %}</button></form><a class="button secondary" href="/packages/{{ p.latest_file }}">DEB</a>{% endif %}
+<a class="button secondary" href="/manage/projects/{{ p.slug }}">Details</a>
+</div></article>{% else %}<section class="empty"><h2>Noch keine Projekte vorhanden</h2><p>Lege zuerst ein Projekt an und hinterlege seine GitHub- oder Gitea-Releasequelle.</p></section>{% endfor %}
+</section>
+<section class="panel"><div class="page-head"><h2>Letzte Installationsjobs</h2><a class="button secondary" href="/api/v1/jobs">JSON-API</a></div>
+<div class="table-wrap"><table><thead><tr><th>ID</th><th>Projekt</th><th>Aufgabe</th><th>Status</th><th>Fortschritt</th><th>Fehler</th><th>Zeit</th></tr></thead><tbody>
+{% for job in jobs %}<tr><td>#{{ job.id }}</td><td>{{ job.project_name or '–' }}</td><td>{{ job.job_type }}</td><td><span class="software-state state-{{ job.state }}">{{ job.state }}</span></td><td>{{ job.progress }} %</td><td><small>{{ job.error or '–' }}</small></td><td><small>{{ job.created_at }}</small></td></tr>{% else %}<tr><td colspan="7">Noch keine Jobs vorhanden.</td></tr>{% endfor %}
+</tbody></table></div></section>
+{% endblock %}
