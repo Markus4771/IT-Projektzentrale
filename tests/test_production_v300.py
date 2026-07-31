@@ -7,16 +7,18 @@ def test_v300_release_remains_in_release_chain():
     source = (ROOT / "app/v300.py").read_text(encoding="utf-8")
     runtime = (ROOT / "app/v300_runtime.py").read_text(encoding="utf-8")
     v301 = (ROOT / "app/v301.py").read_text(encoding="utf-8")
-    current = (ROOT / "app/v302.py").read_text(encoding="utf-8")
+    v302 = (ROOT / "app/v302.py").read_text(encoding="utf-8")
+    current = (ROOT / "app/v310.py").read_text(encoding="utf-8")
     service = (ROOT / "systemd/it-projektzentrale.service").read_text(encoding="utf-8")
     postinst = (ROOT / "debian/postinst").read_text(encoding="utf-8")
     assert 'VERSION = "3.0.0"' in source
     assert "from app.v250 import app" in source
     assert "import app.v300 as v300" in v301
-    assert "from app.v301 import app" in current
-    assert "app.v302_runtime:app" in service
+    assert "from app.v301 import app" in v302
+    assert "from app.v302 import app" in current
+    assert "app.v310_runtime:app" in service
     assert "IT-Projektzentrale 3.0.1 wurde erfolgreich eingerichtet" in postinst
-    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.0.2"
+    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.1.0"
     assert "app.version = VERSION" in runtime
 
 
