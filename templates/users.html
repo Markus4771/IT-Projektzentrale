@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="hero"><h1>Benutzerverwaltung</h1><p>Konten, Rollen und Zugänge verwalten.</p></section>
+{% if message %}<div class="notice">{{ message }}</div>{% endif %}
+{% if generated_password %}
+<div class="notice warning"><strong>Einmaliges Initialpasswort:</strong> <code>{{ generated_password }}</code><br>Jetzt sicher übermitteln. Es wird danach nicht erneut angezeigt.</div>
+{% endif %}
+<section class="card">
+<h2>Benutzer anlegen</h2>
+<form method="post" action="/admin/users/create" class="form-grid">
+<label>Benutzername<input name="username" minlength="3" maxlength="64" required></label>
+<label>Rolle<select name="role">{% for key,label in roles.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select></label>
+<label>Startpasswort<input name="password" type="password" minlength="12" placeholder="Leer = automatisch erzeugen"></label>
+<button type="submit">Benutzer anlegen</button>
+</form>
+</section>
+<section class="card"><h2>Vorhandene Benutzer</h2>
+<div class="table-wrap"><table><thead><tr><th>Benutzer</th><th>Rolle</th><th>Status</th><th>Passwortwechsel</th><th>Letzter Login</th><th>Aktionen</th></tr></thead><tbody>
+{% for user in users %}<tr>
+<td><strong>{{ user.username }}</strong><br><small>angelegt {{ user.created_at }}</small></td>
+<td><form method="post" action="/admin/users/{{ user.id }}/update" class="inline-form"><select name="role">{% for key,label in roles.items() %}<option value="{{ key }}" {% if user.role == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></td>
+<td><label><input type="checkbox" name="active" {% if user.active %}checked{% endif %}> aktiv</label></td>
+<td>{% if user.must_change_password %}erforderlich{% else %}nein{% endif %}</td>
+<td>{{ user.last_login_at or 'noch nie' }}</td>
+<td><button type="submit">Speichern</button></form>
+<form method="post" action="/admin/users/{{ user.id }}/reset-password" class="inline-form"><button type="submit">Passwort zurücksetzen</button></form>
+<form method="post" action="/admin/users/{{ user.id }}/delete" class="inline-form" onsubmit="return confirm('Benutzer wirklich löschen?')"><button type="submit" class="danger">Löschen</button></form></td>
+</tr>{% endfor %}
+</tbody></table></div></section>
+{% endblock %}
