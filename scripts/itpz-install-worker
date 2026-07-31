@@ -47,30 +47,23 @@ def append_log(job_id: int, text: str, error: bool = False) -> None:
 
 def progress(job_id: int, phase: str, percent: int) -> None:
     with connect() as conn:
-        conn.execute(
-            "UPDATE installation_jobs SET phase=?,progress=?,heartbeat_at=? WHERE id=?",
-            (phase, max(0, min(100, percent)), now(), job_id),
-        )
+        conn.execute("UPDATE installation_jobs SET phase=?,progress=?,heartbeat_at=? WHERE id=?",
+                     (phase, max(0, min(100, percent)), now(), job_id))
 
 
 def claim() -> dict | None:
     with connect() as conn:
         conn.execute("BEGIN IMMEDIATE")
-        row = conn.execute(
-            """SELECT j.*,p.name project_name,p.package_name,p.service_name,p.health_url,
-                      p.latest_file,p.latest_version
-               FROM installation_jobs j JOIN projects p ON p.id=j.project_id
-               WHERE j.state='queued' ORDER BY j.id LIMIT 1"""
-        ).fetchone()
+        row = conn.execute("""SELECT j.*,p.name project_name,p.package_name,p.service_name,p.health_url,
+                                     p.latest_file,p.latest_version
+                              FROM installation_jobs j JOIN projects p ON p.id=j.project_id
+                              WHERE j.state='queued' ORDER BY j.id LIMIT 1""").fetchone()
         if not row:
             conn.rollback()
             return None
-        changed = conn.execute(
-            """UPDATE installation_jobs SET state='running',phase='claimed',progress=1,
-                      worker_id=?,started_at=CURRENT_TIMESTAMP,heartbeat_at=?
-               WHERE id=? AND state='queued'""",
-            (WORKER_ID, now(), row["id"]),
-        )
+        changed = conn.execute("""UPDATE installation_jobs SET state='running',phase='claimed',progress=1,
+                                         worker_id=?,started_at=CURRENT_TIMESTAMP,heartbeat_at=?
+                                  WHERE id=? AND state='queued'""", (WORKER_ID, now(), row["id"]))
         if changed.rowcount != 1:
             conn.rollback()
             return None
@@ -103,9 +96,7 @@ def create_backup(job: dict) -> str:
         if candidates:
             shutil.copy2(candidates[-1], job_dir / "previous.deb")
     (job_dir / "metadata.txt").write_text(
-        f"job={job['id']}\npackage={package}\nprevious_version={version}\ncreated={now()}\n",
-        encoding="utf-8",
-    )
+        f"job={job['id']}\npackage={package}\nprevious_version={version}\ncreated={now()}\n", encoding="utf-8")
     return str(job_dir)
 
 
@@ -133,8 +124,7 @@ def health_check(job: dict) -> None:
     if service:
         if not service.endswith(".service"):
             service += ".service"
-        result = run(["/usr/bin/systemctl", "is-active", "--quiet", service], 30)
-        if result.returncode != 0:
+        if run(["/usr/bin/systemctl", "is-active", "--quiet", service], 30).returncode != 0:
             raise RuntimeError(f"Dienst {service} ist nach der Installation nicht aktiv")
     url = (job.get("health_url") or "").strip()
     if url:
@@ -142,27 +132,31 @@ def health_check(job: dict) -> None:
             raise RuntimeError("Health-URL muss lokal sein")
         request = urllib.request.Request(url, headers={"User-Agent": "ITPZ-Worker/2.1"})
         with urllib.request.urlopen(request, timeout=15) as response:
-            if response.status < 200 or response.status >= 400:
+            if not 200 <= response.status < 400:
                 raise RuntimeError(f"Health-Check meldet HTTP {response.status}")
 
 
 def rollback(job: dict, backup_path: str) -> bool:
     previous = Path(backup_path) / "previous.deb"
-    if previous.is_file():
-        result = run(["/usr/bin/sudo", HELPER, "install", str(previous)], 1800)
+    if not previous.is_file():
+        return False
+    temporary = PACKAGES / f"rollback-job-{job['id']}.deb"
+    shutil.copy2(previous, temporary)
+    try:
+        result = run(["/usr/bin/sudo", HELPER, "install", str(temporary)], 1800)
         append_log(job["id"], "\n--- Rollback ---\n" + result.stdout)
         append_log(job["id"], result.stderr, True)
         return result.returncode == 0
-    return False
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def finish(job_id: int, state: str, phase: str, percent: int, error: str = "", rollback_state: str = "") -> None:
     with connect() as conn:
-        conn.execute(
-            """UPDATE installation_jobs SET state=?,phase=?,progress=?,error=CASE WHEN ?='' THEN error ELSE ? END,
-                      rollback_state=?,finished_at=CURRENT_TIMESTAMP,heartbeat_at=? WHERE id=?""",
-            (state, phase, percent, error, error[-MAX_LOG:], rollback_state, now(), job_id),
-        )
+        conn.execute("""UPDATE installation_jobs SET state=?,phase=?,progress=?,
+                               error=CASE WHEN ?='' THEN error ELSE ? END,rollback_state=?,
+                               finished_at=CURRENT_TIMESTAMP,heartbeat_at=? WHERE id=?""",
+                     (state, phase, percent, error, error[-MAX_LOG:], rollback_state, now(), job_id))
 
 
 def process(job: dict) -> None:
@@ -196,7 +190,8 @@ def process(job: dict) -> None:
         path = package_path(job)
         target = verify_package(path, package)
         with connect() as conn:
-            conn.execute("UPDATE installation_jobs SET package_file=?,target_version=? WHERE id=?", (path.name, target, job_id))
+            conn.execute("UPDATE installation_jobs SET package_file=?,target_version=? WHERE id=?",
+                         (path.name, target, job_id))
         progress(job_id, "backup", 25)
         backup_path = create_backup(job)
         with connect() as conn:
@@ -211,10 +206,9 @@ def process(job: dict) -> None:
         health_check(job)
         progress(job_id, "registering", 95)
         with connect() as conn:
-            conn.execute(
-                "UPDATE projects SET installed_version=?,installation_status='installed',updated_at=CURRENT_TIMESTAMP WHERE id=?",
-                (installed_version(package) or target, job["project_id"]),
-            )
+            conn.execute("""UPDATE projects SET installed_version=?,installation_status='installed',
+                                    updated_at=CURRENT_TIMESTAMP WHERE id=?""",
+                         (installed_version(package) or target, job["project_id"]))
         finish(job_id, "succeeded", "completed", 100)
     except Exception as exc:
         message = str(exc)
@@ -228,14 +222,15 @@ def process(job: dict) -> None:
 
 def recover_stale_jobs() -> None:
     with connect() as conn:
-        conn.execute(
-            """UPDATE installation_jobs SET state='failed',phase='failed',progress=100,
-                      error=error || '\nWorker wurde während der Ausführung beendet.',finished_at=CURRENT_TIMESTAMP
-               WHERE state='running' AND (heartbeat_at IS NULL OR heartbeat_at < datetime('now','-15 minutes'))"""
-        )
+        conn.execute("""UPDATE installation_jobs SET state='failed',phase='failed',progress=100,
+                               error=error || '\nWorker wurde während der Ausführung beendet.',
+                               finished_at=CURRENT_TIMESTAMP
+                        WHERE state='running' AND
+                              (heartbeat_at IS NULL OR heartbeat_at < datetime('now','-15 minutes'))""")
 
 
 def main() -> None:
+    PACKAGES.mkdir(parents=True, exist_ok=True)
     BACKUPS.mkdir(parents=True, exist_ok=True)
     recover_stale_jobs()
     while True:
