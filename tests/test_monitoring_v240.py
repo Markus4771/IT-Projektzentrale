@@ -6,15 +6,17 @@ ROOT = Path(__file__).resolve().parents[1]
 def test_monitoring_release_is_wired():
     source = (ROOT / "app/v240.py").read_text(encoding="utf-8")
     runtime = (ROOT / "app/v240_runtime.py").read_text(encoding="utf-8")
-    current = (ROOT / "app/v250.py").read_text(encoding="utf-8")
+    v250 = (ROOT / "app/v250.py").read_text(encoding="utf-8")
+    current = (ROOT / "app/v300.py").read_text(encoding="utf-8")
     service = (ROOT / "systemd/it-projektzentrale.service").read_text(encoding="utf-8")
     postinst = (ROOT / "debian/postinst").read_text(encoding="utf-8")
     assert 'VERSION = "2.4.0"' in source
     assert 'VERSION = "2.4.0"' in runtime
-    assert "from app.v240 import app" in current
-    assert "app.v250_runtime:app" in service
+    assert "from app.v240 import app" in v250
+    assert "from app.v250 import app" in current
+    assert "app.v300_runtime:app" in service
     assert '"version":"2.5.0"' in postinst
-    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "2.5.0"
+    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.0.0"
 
 
 def test_monitoring_has_rules_alerts_and_windows():

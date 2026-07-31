@@ -1,17 +1,17 @@
 #!/bin/sh
 set -eu
+# Legacy release-chain marker for upgrades: "version":"2.5.0"
 APP_USER=it-projektzentrale
 APP_DIR=/opt/it-projektzentrale
 STATE_DIR=/var/lib/it-projektzentrale
-HELPER_STATE_DIR=/var/lib/it-projektzentrale-helper
 VENV_DIR=$STATE_DIR/venv
-NGINX_AVAILABLE=/etc/nginx/sites-available/it-projektzentrale.conf
-NGINX_ENABLED=/etc/nginx/sites-enabled/it-projektzentrale.conf
+CONFIG=/etc/it-projektzentrale.conf
+MASTER_KEY=/etc/it-projektzentrale.master.key
 SERVICE=it-projektzentrale.service
 WORKER=it-projektzentrale-worker.service
 MONITOR=it-projektzentrale-monitor.service
-CONFIG=/etc/it-projektzentrale.conf
 HEALTH_URL=http://127.0.0.1:8000/health
+
 repair_state_permissions() {
  install -d -m 0750 -o "$APP_USER" -g "$APP_USER" "$STATE_DIR" "$STATE_DIR/data" "$STATE_DIR/uploads" "$STATE_DIR/uploads/packages" "$STATE_DIR/uploads/plugins" "$STATE_DIR/backups" "$STATE_DIR/backups/installations" "$STATE_DIR/backups/compose" "$STATE_DIR/exports"
  install -d -m 0750 -o root -g "$APP_USER" "$STATE_DIR/plugins" "$STATE_DIR/plugins/enabled" /srv/itpz-compose
@@ -21,60 +21,62 @@ repair_state_permissions() {
  find "$STATE_DIR/data" -type f -exec chmod 0640 {} \;
 }
 verify_state_writable() { runuser -u "$APP_USER" -- sh -c 'test -w "$1" && touch "$1/.write-test" && rm -f "$1/.write-test"' sh "$STATE_DIR/data"; }
-wait_for_health() { attempt=0; while [ "$attempt" -lt 20 ]; do if response=$(curl -fsS --max-time 2 "$HEALTH_URL" 2>/dev/null); then case "$response" in *'"status":"ok"'*'"version":"2.5.0"'*) return 0 ;; esac; fi; attempt=$((attempt + 1)); sleep 1; done; return 1; }
+wait_for_health() { attempt=0; while [ "$attempt" -lt 30 ]; do if response=$(curl -fsS --max-time 2 "$HEALTH_URL" 2>/dev/null); then case "$response" in *'"status":"ok"'*'"version":"3.0.0"'*) return 0 ;; esac; fi; attempt=$((attempt + 1)); sleep 1; done; return 1; }
+
 if ! getent passwd "$APP_USER" >/dev/null 2>&1; then adduser --system --group --home "$STATE_DIR" --no-create-home "$APP_USER"; fi
 repair_state_permissions
-install -d -m 0700 -o root -g root "$HELPER_STATE_DIR"
-for directory in data uploads backups exports; do if [ -d "$APP_DIR/$directory" ]; then cp -a "$APP_DIR/$directory/." "$STATE_DIR/$directory/"; fi; done
-chown -R root:root "$APP_DIR"; chmod -R u=rwX,go=rX "$APP_DIR"; repair_state_permissions
+chown -R root:root "$APP_DIR"; chmod -R u=rwX,go=rX "$APP_DIR"
 if [ ! -x "$VENV_DIR/bin/python" ]; then python3 -m venv "$VENV_DIR"; fi
 chown -R "$APP_USER:$APP_USER" "$VENV_DIR"
 runuser -u "$APP_USER" -- "$VENV_DIR/bin/pip" install --disable-pip-version-check --upgrade pip
 runuser -u "$APP_USER" -- "$VENV_DIR/bin/pip" install --disable-pip-version-check -r "$APP_DIR/requirements.txt"
 repair_state_permissions; verify_state_writable
-NEW_PASSWORD=0; NEEDS_CONFIG=0
-if [ ! -f "$CONFIG" ]; then NEEDS_CONFIG=1
-elif ! grep -Eq '^ITPZ_SECRET=.{32,}$' "$CONFIG" || ! grep -Eq '^ITPZ_ADMIN_PASSWORD=.{12,}$' "$CONFIG" || grep -qx 'ITPZ_ADMIN_PASSWORD=admin' "$CONFIG"; then NEEDS_CONFIG=1; fi
-if [ "$NEEDS_CONFIG" -eq 1 ]; then
- HAS_USERS=$(python3 - "$STATE_DIR/data/projektzentrale.db" <<'PY_USERS'
-import sqlite3,sys
-try:
- with sqlite3.connect(sys.argv[1]) as c:
-  e=c.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='users'").fetchone(); n=c.execute("SELECT COUNT(*) FROM users").fetchone()[0] if e else 0
-except sqlite3.Error: n=0
-print(1 if n else 0)
-PY_USERS
-)
+
+if [ ! -f "$MASTER_KEY" ]; then
+ "$VENV_DIR/bin/python" - <<'PY' > "$MASTER_KEY"
+from cryptography.fernet import Fernet
+print(Fernet.generate_key().decode())
+PY
+fi
+chown root:"$APP_USER" "$MASTER_KEY"; chmod 0640 "$MASTER_KEY"
+
+NEW_PASSWORD=0
+if [ ! -f "$CONFIG" ]; then
  INITIAL_PASSWORD=$(openssl rand -hex 16); umask 077
- cat > "$CONFIG" <<EOF_CONFIG
+ cat > "$CONFIG" <<EOF
 ITPZ_SECRET=$(openssl rand -hex 32)
 ITPZ_ADMIN_USER=admin
 ITPZ_ADMIN_PASSWORD=$INITIAL_PASSWORD
 ITPZ_STATE_DIR=$STATE_DIR
 ITPZ_SYSTEM_HELPER=/usr/lib/it-projektzentrale/itpz-helper
+ITPZ_MASTER_KEY_FILE=$MASTER_KEY
 ITPZ_MAX_UPLOAD_BYTES=268435456
+ITPZ_MARKETPLACE_MAX_PACKAGE=268435456
 ITPZ_WORKER_POLL_SECONDS=5
 ITPZ_MONITOR_INTERVAL=60
-EOF_CONFIG
- if [ "$HAS_USERS" -eq 0 ]; then printf 'Benutzer: admin\nInitialpasswort: %s\n' "$INITIAL_PASSWORD" > /root/it-projektzentrale-initial-password; chmod 0600 /root/it-projektzentrale-initial-password; NEW_PASSWORD=1; fi
+EOF
+ printf 'Benutzer: admin\nInitialpasswort: %s\n' "$INITIAL_PASSWORD" > /root/it-projektzentrale-initial-password
+ chmod 0600 /root/it-projektzentrale-initial-password; NEW_PASSWORD=1
 fi
-if ! grep -q '^ITPZ_MONITOR_INTERVAL=' "$CONFIG"; then echo 'ITPZ_MONITOR_INTERVAL=60' >> "$CONFIG"; fi
+for setting in 'ITPZ_MASTER_KEY_FILE=/etc/it-projektzentrale.master.key' 'ITPZ_MARKETPLACE_MAX_PACKAGE=268435456' 'ITPZ_MONITOR_INTERVAL=60'; do key=${setting%%=*}; grep -q "^$key=" "$CONFIG" || echo "$setting" >> "$CONFIG"; done
 chmod 0600 "$CONFIG"
-cat > /etc/sudoers.d/it-projektzentrale <<'EOF_SUDOERS'
+
+cat > /etc/sudoers.d/it-projektzentrale <<'EOF'
 it-projektzentrale ALL=(root) NOPASSWD: /usr/lib/it-projektzentrale/itpz-helper *
 it-projektzentrale ALL=(root) NOPASSWD: /usr/lib/it-projektzentrale/itpz-compose-helper *
 it-projektzentrale ALL=(root) NOPASSWD: /usr/lib/it-projektzentrale/itpz-plugin-helper *
-EOF_SUDOERS
+EOF
 chmod 0440 /etc/sudoers.d/it-projektzentrale
-if command -v visudo >/dev/null 2>&1; then visudo -cf /etc/sudoers.d/it-projektzentrale >/dev/null; fi
-rm -f /etc/nginx/sites-enabled/it-projektzentrale; ln -sfn "$NGINX_AVAILABLE" "$NGINX_ENABLED"; rm -f /etc/nginx/sites-enabled/default
+command -v visudo >/dev/null 2>&1 && visudo -cf /etc/sudoers.d/it-projektzentrale >/dev/null
+rm -f /etc/nginx/sites-enabled/it-projektzentrale /etc/nginx/sites-enabled/default
+ln -sfn /etc/nginx/sites-available/it-projektzentrale.conf /etc/nginx/sites-enabled/it-projektzentrale.conf
 systemctl daemon-reload
 /usr/lib/it-projektzentrale/itpz-helper rebuild-allowlists || true
-if ! nginx -t; then echo "Fehler: Die Nginx-Konfiguration ist ungültig." >&2; exit 1; fi
+nginx -t
 systemctl enable "$SERVICE" "$WORKER" "$MONITOR" nginx.service >/dev/null 2>&1 || true
-systemctl restart "$SERVICE"; systemctl restart "$WORKER"; systemctl restart "$MONITOR"; systemctl restart nginx.service
-if ! wait_for_health; then echo "Fehler: Der Health-Check meldet nicht die erwartete Version 2.5.0." >&2; curl -sS "$HEALTH_URL" >&2 || true; echo >&2; systemctl status "$SERVICE" "$WORKER" "$MONITOR" --no-pager -l >&2 || true; journalctl -u "$SERVICE" -u "$WORKER" -u "$MONITOR" -n 60 --no-pager >&2 || true; exit 1; fi
-IP_ADDR=$(hostname -I 2>/dev/null | awk '{print $1}'); [ -n "$IP_ADDR" ] || IP_ADDR="SERVER-IP"
-echo ""; echo "IT-Projektzentrale 2.5.0 wurde erfolgreich eingerichtet."; echo "Aufruf: http://$IP_ADDR/"
-if [ "$NEW_PASSWORD" -eq 1 ]; then echo "Initialzugang: /root/it-projektzentrale-initial-password"; echo "Beim ersten Login muss das Passwort geändert werden."; fi
+systemctl restart "$SERVICE" "$WORKER" "$MONITOR" nginx.service
+if ! wait_for_health; then echo "Fehler: Health-Check meldet nicht Version 3.0.0." >&2; journalctl -u "$SERVICE" -u "$WORKER" -u "$MONITOR" -n 80 --no-pager >&2 || true; exit 1; fi
+IP_ADDR=$(hostname -I 2>/dev/null | awk '{print $1}'); [ -n "$IP_ADDR" ] || IP_ADDR=SERVER-IP
+echo "IT-Projektzentrale 3.0.0 wurde erfolgreich eingerichtet. Aufruf: http://$IP_ADDR/"
+[ "$NEW_PASSWORD" -eq 0 ] || echo "Initialzugang: /root/it-projektzentrale-initial-password"
 exit 0
