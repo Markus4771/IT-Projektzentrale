@@ -13,35 +13,30 @@ jobs:
     steps:
       - name: Repository auschecken
         uses: actions/checkout@v4
-
       - name: Python-Syntax prüfen
-        run: python3 -m compileall -q app scripts/itpz-helper scripts/itpz-install-worker
-
+        run: python3 -m compileall -q app agent/itpz-agent.py scripts/itpz-helper scripts/itpz-install-worker
       - name: Testabhängigkeiten installieren
         run: python3 -m pip install -r requirements.txt -r requirements-dev.txt
-
       - name: Automatisierte Tests
         run: python3 -m pytest -q
-
       - name: Shell-Syntax prüfen
         run: |
-          bash -n install.sh scripts/build_deb.sh
+          bash -n install.sh scripts/build_deb.sh scripts/build_agent_deb.sh
           sh -n debian/postinst debian/prerm debian/postrm
-
-      - name: Debian-Paket bauen
-        run: bash scripts/build_deb.sh
-
-      - name: Paket prüfen
+      - name: Debian-Pakete bauen
         run: |
-          PACKAGE=$(find dist -maxdepth 1 -type f -name '*.deb' -print -quit)
-          test -n "$PACKAGE"
-          dpkg-deb --info "$PACKAGE"
-          sha256sum -c "$PACKAGE.sha256"
-          dpkg-deb --contents "$PACKAGE" | grep -Eq '^-rwxr-xr-x root/root +.*itpz-helper$'
-          dpkg-deb --contents "$PACKAGE" | grep -Eq '^-rwx------ root/root +.*itpz-helper-worker$'
-          dpkg-deb --contents "$PACKAGE" | grep -Eq '^-rwxr-xr-x root/root +.*itpz-install-worker$'
-          dpkg-deb --contents "$PACKAGE" | grep -Eq 'it-projektzentrale-worker.service$'
-
+          bash scripts/build_deb.sh
+          bash scripts/build_agent_deb.sh
+      - name: Pakete prüfen
+        run: |
+          MAIN=$(find dist -maxdepth 1 -type f -name 'it-projektzentrale_*.deb' -print -quit)
+          AGENT=$(find dist -maxdepth 1 -type f -name 'itpz-agent_*.deb' -print -quit)
+          test -n "$MAIN" && test -n "$AGENT"
+          dpkg-deb --info "$MAIN" && dpkg-deb --info "$AGENT"
+          sha256sum -c "$MAIN.sha256" && sha256sum -c "$AGENT.sha256"
+          dpkg-deb --contents "$MAIN" | grep -Eq 'it-projektzentrale-worker.service$'
+          dpkg-deb --contents "$AGENT" | grep -Eq 'itpz-agent.service$'
+          dpkg-deb --contents "$AGENT" | grep -Eq 'itpz-agent.py$'
       - name: Build-Artefakte bereitstellen
         uses: actions/upload-artifact@v4
         with:
