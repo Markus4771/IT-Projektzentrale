@@ -81,11 +81,12 @@ def test_release_and_packaging_are_wired():
     postinst = (ROOT / "debian/postinst").read_text(encoding="utf-8")
     nav = (ROOT / "templates/base.html").read_text(encoding="utf-8")
     assert "app.v320_runtime:app" in service
-    assert "EXPECTED_VERSION=3.2.0" in postinst
+    assert "app.v330_runtime:app" in service
+    assert "EXPECTED_VERSION=3.3.0" in postinst
     assert "ITPZ_PROJECT_SCAN_ROOTS" in postinst
     assert "/srv/itpz-projects" in postinst
     assert 'href="/project-framework"' in nav
-    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.2.0"
+    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.3.0"
 
 
 def test_project_apply_uses_existing_project_schema():
