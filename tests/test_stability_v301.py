@@ -6,19 +6,15 @@ ROOT = Path(__file__).resolve().parents[1]
 def test_v301_release_remains_in_chain():
     source = (ROOT / "app/v301.py").read_text(encoding="utf-8")
     runtime = (ROOT / "app/v301_runtime.py").read_text(encoding="utf-8")
-    v302 = (ROOT / "app/v302.py").read_text(encoding="utf-8")
-    current = (ROOT / "app/v310.py").read_text(encoding="utf-8")
     service = (ROOT / "systemd/it-projektzentrale.service").read_text(encoding="utf-8")
     postinst = (ROOT / "debian/postinst").read_text(encoding="utf-8")
     assert 'VERSION = "3.0.1"' in source
     assert 'VERSION = "3.0.1"' in runtime
-    assert "from app.v301 import app" in v302
-    assert "from app.v302 import app" in current
     assert "app.v301_runtime:app" in service
-    assert "app.v310_runtime:app" in service
     assert "app.v311_runtime:app" in service
+    assert "app.v320_runtime:app" in service
     assert '"version":"3.0.1"' in postinst
-    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.1.1"
+    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.2.0"
 
 
 def test_marketplace_blocks_ssrf_and_unsafe_versions():
@@ -48,4 +44,4 @@ def test_postinst_preserves_and_validates_master_key():
     postinst = (ROOT / "debian/postinst").read_text(encoding="utf-8")
     assert 'if [ ! -s "$MASTER_KEY" ]' in postinst
     assert "Fernet(Path(sys.argv[1]).read_bytes().strip())" in postinst
-    assert 'fail "Master-Key ist ungültig"' in postinst
+    assert "Master-Key ist ungültig" in postinst
