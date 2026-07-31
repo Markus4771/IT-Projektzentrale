@@ -3,7 +3,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_v301_release_wiring():
+def test_v301_release_remains_in_chain():
     source = (ROOT / "app/v301.py").read_text(encoding="utf-8")
     runtime = (ROOT / "app/v301_runtime.py").read_text(encoding="utf-8")
     service = (ROOT / "systemd/it-projektzentrale.service").read_text(encoding="utf-8")
@@ -12,7 +12,7 @@ def test_v301_release_wiring():
     assert 'VERSION = "3.0.1"' in runtime
     assert "app.v301_runtime:app" in service
     assert '"version":"3.0.1"' in postinst
-    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.0.1"
+    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.0.2"
 
 
 def test_marketplace_blocks_ssrf_and_unsafe_versions():
