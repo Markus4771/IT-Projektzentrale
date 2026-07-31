@@ -2,6 +2,27 @@
 
 ## [Unveröffentlicht]
 
+## [1.2.0] – 2026-07-31
+
+### Hinzugefügt
+
+- vollständige Benutzerverwaltung unter `/admin/users`
+- Rollen Administrator, Projektverwalter und Betrachter
+- Benutzer anlegen, sperren, aktivieren und löschen
+- Rollenänderung und Passwort-Reset über die Weboberfläche
+- automatisch erzeugte sichere Initialpasswörter
+
+### Sicherheit
+
+- Passwortwechsel nach Neuanlage und Reset verpflichtend
+- Schutz des eigenen Administratorkontos
+- letzter aktiver Administrator kann nicht gelöscht, gesperrt oder herabgestuft werden
+- Benutzerverwaltung ausschließlich für Administratoren
+
+### Tests
+
+- Regressionstests für Versionsverdrahtung, Rollen und Schutzregeln
+
 ## [1.1.1] – 2026-07-31
 
 ### Behoben
