@@ -1,46 +1,8 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="page-head"><div><h1>Serververwaltung</h1><p class="lead">Debian-Server, Dienste, Ressourcen, Updates und Docker zentral überwachen.</p></div>
-<form method="post" action="/servers/collect-all"><button>Alle Server prüfen</button></form></div>
-{% if message %}<div class="notice success">{{ message }}</div>{% endif %}
-{% if error %}<div class="notice error-box">{{ error }}</div>{% endif %}
-<section class="stats">
-<article><b>{{ servers|length }}</b><span>Server</span></article>
-<article><b>{{ servers|selectattr('last_status','equalto','online')|list|length }}</b><span>Online</span></article>
-<article><b>{{ servers|selectattr('last_status','equalto','offline')|list|length }}</b><span>Offline</span></article>
-</section>
-<div class="server-grid">
-{% for server in servers %}
-<article class="card server-card">
-<div class="tile-head"><div><span class="badge">{{ server.environment }}</span><h2>{{ server.name }}</h2></div><span class="software-state state-{{ 'ok' if server.last_status == 'online' else 'failed' if server.last_status == 'offline' else 'muted' }}">{{ server.last_status }}</span></div>
-<p><strong>{{ server.hostname }}</strong> · {{ server.role }} · {{ server.connection_type }}</p>
-{% if server.description %}<p>{{ server.description }}</p>{% endif %}
-<div class="metric-grid">
-<div><small>CPU</small><strong>{{ server.cpu_percent if server.cpu_percent is not none else '–' }}{% if server.cpu_percent is not none %}%{% endif %}</strong></div>
-<div><small>RAM</small><strong>{{ server.memory_percent if server.memory_percent is not none else '–' }}{% if server.memory_percent is not none %}%{% endif %}</strong></div>
-<div><small>Festplatte</small><strong>{{ server.disk_percent if server.disk_percent is not none else '–' }}{% if server.disk_percent is not none %}%{% endif %}</strong></div>
-<div><small>Updates</small><strong>{{ server.package_updates if server.package_updates is not none else '–' }}</strong></div>
-</div>
-<p><small>{{ server.os_name or 'Betriebssystem noch nicht erfasst' }}</small></p>
-{% if server.docker_available %}<p><span class="badge">Docker: {{ server.docker_containers }} laufende Container</span></p>{% endif %}
-{% if server.services %}<div class="service-list">{% for service in server.services %}<span class="service-pill service-{{ 'läuft' if service.state == 'active' else 'failed' if service.state == 'failed' else 'inactive' }}">{{ service.name }}: {{ service.state }}</span>{% endfor %}</div>{% endif %}
-{% if server.last_error %}<p class="error">{{ server.last_error }}</p>{% endif %}
-<div class="actions"><form method="post" action="/servers/{{ server.id }}/collect"><button>Status aktualisieren</button></form></div>
-<small>Letzte Messung: {{ server.collected_at or 'noch nie' }}</small>
-</article>
-{% endfor %}
-</div>
-{% if current_user.role == 'admin' %}
-<section class="panel"><h2>Server hinzufügen</h2>
-<form method="post" action="/servers/add" class="edit-grid">
-<label>Name<input name="name" required maxlength="120" placeholder="Mailserver"></label>
-<label>Hostname<input name="hostname" required maxlength="253" placeholder="mail.example.local"></label>
-<label>Rolle<input name="role" maxlength="80" placeholder="Mail, Backup, Tools"></label>
-<label>Umgebung<select name="environment"><option>Produktion</option><option>Test</option><option>Entwicklung</option></select></label>
-<label>Verbindung<select name="connection_type"><option value="agent">Agent-API</option><option value="local">Lokal</option></select></label>
-<label>Agent-URL<input name="agent_url" type="url" placeholder="https://server/api/v1/agent/status"></label>
-<label style="grid-column:1/-1">Beschreibung<textarea name="description"></textarea></label>
-<div><button>Server anlegen</button></div>
-</form></section>
-{% endif %}
+<div class="page-head"><div><h1>Serververwaltung</h1><p class="lead">Debian-Server, Agenten, Dienste, Ressourcen und Remote-Aufträge zentral verwalten.</p></div><div class="actions"><a class="button secondary" href="/remote-jobs">Remote-Aufträge</a><form method="post" action="/servers/collect-all"><button>Alle Server prüfen</button></form></div></div>
+{% if message %}<div class="notice success">{{ message }}</div>{% endif %}{% if error %}<div class="notice error-box">{{ error }}</div>{% endif %}
+<section class="stats"><article><b>{{ servers|length }}</b><span>Server</span></article><article><b>{{ servers|selectattr('last_status','equalto','online')|list|length }}</b><span>Online</span></article><article><b>{{ servers|selectattr('last_status','equalto','offline')|list|length }}</b><span>Offline</span></article></section>
+<div class="server-grid">{% for server in servers %}<article class="card server-card"><div class="tile-head"><div><span class="badge">{{ server.environment }}</span><h2>{{ server.name }}</h2></div><span class="software-state state-{{ 'ok' if server.last_status == 'online' else 'failed' if server.last_status == 'offline' else 'muted' }}">{{ server.last_status }}</span></div><p><strong>{{ server.hostname }}</strong> · {{ server.role }} · {{ server.connection_type }}</p>{% if server.description %}<p>{{ server.description }}</p>{% endif %}<div class="metric-grid"><div><small>CPU</small><strong>{{ server.cpu_percent if server.cpu_percent is not none else '–' }}{% if server.cpu_percent is not none %}%{% endif %}</strong></div><div><small>RAM</small><strong>{{ server.memory_percent if server.memory_percent is not none else '–' }}{% if server.memory_percent is not none %}%{% endif %}</strong></div><div><small>Festplatte</small><strong>{{ server.disk_percent if server.disk_percent is not none else '–' }}{% if server.disk_percent is not none %}%{% endif %}</strong></div><div><small>Updates</small><strong>{{ server.package_updates if server.package_updates is not none else '–' }}</strong></div></div><p><small>{{ server.os_name or 'Betriebssystem noch nicht erfasst' }}</small></p>{% if server.docker_available %}<p><span class="badge">Docker: {{ server.docker_containers }} laufende Container</span></p>{% endif %}{% if server.last_error %}<p class="error">{{ server.last_error }}</p>{% endif %}<div class="actions"><form method="post" action="/servers/{{ server.id }}/collect"><button>Status aktualisieren</button></form>{% if server.connection_type=='agent' and current_user.role=='admin' %}<form method="post" action="/servers/{{ server.id }}/registration-token"><button class="secondary">Registrierungsschlüssel</button></form><form method="post" action="/servers/{{ server.id }}/agent-test"><button class="secondary">Agent testen</button></form>{% endif %}</div>{% if server.connection_type=='agent' and current_user.role=='admin' %}<hr><p><small>Agent {{ server.agent_version or 'nicht registriert' }} · {{ server.registered_at or 'noch nie registriert' }}</small></p><form method="post" action="/servers/{{ server.id }}/remote-action" class="edit-grid"><label>Aktion<select name="action"><option value="apt-update">Paketlisten aktualisieren</option><option value="apt-upgrade">Debian aktualisieren</option><option value="backup">Agent-Backup</option><option value="install">DEB installieren</option></select></label><label>Paketdatei<input name="package_file" placeholder="projekt_1.0_all.deb"></label><div><button>Remote ausführen</button></div></form>{% endif %}<small>Letzte Messung: {{ server.collected_at or 'noch nie' }}</small></article>{% endfor %}</div>
+{% if current_user.role == 'admin' %}<section class="panel"><h2>Server hinzufügen</h2><form method="post" action="/servers/add" class="edit-grid"><label>Name<input name="name" required maxlength="120" placeholder="Mailserver"></label><label>Hostname<input name="hostname" required maxlength="253" placeholder="mail.example.local"></label><label>Rolle<input name="role" maxlength="80" placeholder="Mail, Backup, Tools"></label><label>Umgebung<select name="environment"><option>Produktion</option><option>Test</option><option>Entwicklung</option></select></label><label>Verbindung<select name="connection_type"><option value="agent">Agent-API</option><option value="local">Lokal</option></select></label><label>Agent-Basis-URL<input name="agent_url" type="url" placeholder="https://server.example:8765"></label><label style="grid-column:1/-1">Beschreibung<textarea name="description"></textarea></label><div><button>Server anlegen</button></div></form></section>{% endif %}
 {% endblock %}

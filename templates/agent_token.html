@@ -1,0 +1,7 @@
+{% extends 'base.html' %}{% block content %}
+<div class="page-head"><div><h1>Remote-Agent registrieren</h1><p>Der Registrierungsschlüssel wird nur jetzt angezeigt.</p></div><a class="button secondary" href="/servers">Zurück</a></div>
+<div class="notice error-box"><strong>Schlüssel sicher kopieren.</strong> Nach Verlassen dieser Seite wird er nicht erneut angezeigt.</div>
+<section class="card"><h2>Agent-Konfiguration</h2><p>Auf dem Zielserver in <code>/etc/itpz-agent.conf</code> eintragen:</p><pre>ITPZ_AGENT_TOKEN_HASH={{ token_hash }}
+ITPZ_AGENT_HOST=0.0.0.0
+ITPZ_AGENT_PORT=8765</pre><p>Ursprünglicher Registrierungsschlüssel:</p><pre>{{ token }}</pre><p>Danach:</p><pre>sudo systemctl restart itpz-agent.service</pre></section>
+{% endblock %}

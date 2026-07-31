@@ -6,13 +6,15 @@ ROOT = Path(__file__).resolve().parents[1]
 def test_v210_release_wiring():
     source = (ROOT / "app/v210.py").read_text(encoding="utf-8")
     runtime = (ROOT / "app/v210_runtime.py").read_text(encoding="utf-8")
+    current = (ROOT / "app/v220.py").read_text(encoding="utf-8")
     service = (ROOT / "systemd/it-projektzentrale.service").read_text(encoding="utf-8")
     postinst = (ROOT / "debian/postinst").read_text(encoding="utf-8")
     assert 'VERSION = "2.1.0"' in source
     assert "app.v200" in source
-    assert "app.v210_runtime:app" in service
-    assert '\"version\":\"2.1.0\"' in postinst
-    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "2.1.0"
+    assert "from app.v210_runtime import app" in current
+    assert "app.v220_runtime:app" in service
+    assert '\"version\":\"2.2.0\"' in postinst
+    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "2.2.0"
     assert "app.version = VERSION" in runtime
 
 

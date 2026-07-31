@@ -2,15 +2,15 @@ name: Debian Release
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
       - version.txt
       - app/**
+      - agent/**
       - templates/**
       - static/**
       - systemd/**
-      - scripts/build_deb.sh
+      - scripts/**
       - debian/**
       - .github/workflows/release.yml
   workflow_dispatch:
@@ -21,13 +21,11 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-24.04
-
     steps:
       - name: Repository auschecken
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
       - name: Version bestimmen
         id: version
         shell: bash
@@ -37,29 +35,30 @@ jobs:
           test -n "$VERSION"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
-
       - name: Tests und Syntaxprüfung
         shell: bash
         run: |
           set -euo pipefail
           python3 -m pip install -r requirements.txt -r requirements-dev.txt
-          python3 -m compileall -q app scripts/itpz-helper
+          python3 -m compileall -q app agent/itpz-agent.py scripts/itpz-helper scripts/itpz-install-worker
           python3 -m pytest -q
-          bash -n install.sh scripts/build_deb.sh
+          bash -n install.sh scripts/build_deb.sh scripts/build_agent_deb.sh
           sh -n debian/postinst debian/prerm debian/postrm
-
-      - name: Debian-Paket bauen
+      - name: Debian-Pakete bauen
         shell: bash
         run: |
           set -euo pipefail
           bash scripts/build_deb.sh
+          bash scripts/build_agent_deb.sh
           VERSION='${{ steps.version.outputs.version }}'
-          PACKAGE="dist/it-projektzentrale_${VERSION}_all.deb"
-          test -f "$PACKAGE"
-          dpkg-deb --info "$PACKAGE"
-          cp "$PACKAGE" dist/it-projektzentrale_latest_all.deb
+          MAIN="dist/it-projektzentrale_${VERSION}_all.deb"
+          AGENT="dist/itpz-agent_${VERSION}_all.deb"
+          test -f "$MAIN" && test -f "$AGENT"
+          dpkg-deb --info "$MAIN" && dpkg-deb --info "$AGENT"
+          cp "$MAIN" dist/it-projektzentrale_latest_all.deb
+          cp "$AGENT" dist/itpz-agent_latest_all.deb
           sha256sum dist/it-projektzentrale_latest_all.deb > dist/it-projektzentrale_latest_all.deb.sha256
-
+          sha256sum dist/itpz-agent_latest_all.deb > dist/itpz-agent_latest_all.deb.sha256
       - name: Release erstellen oder aktualisieren
         env:
           GH_TOKEN: ${{ github.token }}
@@ -68,22 +67,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          FILES=(
+            "dist/it-projektzentrale_${VERSION}_all.deb"
+            "dist/it-projektzentrale_${VERSION}_all.deb.sha256"
+            "dist/it-projektzentrale_latest_all.deb"
+            "dist/it-projektzentrale_latest_all.deb.sha256"
+            "dist/itpz-agent_${VERSION}_all.deb"
+            "dist/itpz-agent_${VERSION}_all.deb.sha256"
+            "dist/itpz-agent_latest_all.deb"
+            "dist/itpz-agent_latest_all.deb.sha256"
+          )
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" \
-              "dist/it-projektzentrale_${VERSION}_all.deb" \
-              "dist/it-projektzentrale_${VERSION}_all.deb.sha256" \
-              "dist/it-projektzentrale_latest_all.deb" \
-              "dist/it-projektzentrale_latest_all.deb.sha256" \
-              --clobber
+            gh release upload "$TAG" "${FILES[@]}" --clobber
           else
             git tag "$TAG" "$GITHUB_SHA"
             git push origin "$TAG"
-            gh release create "$TAG" \
-              "dist/it-projektzentrale_${VERSION}_all.deb" \
-              "dist/it-projektzentrale_${VERSION}_all.deb.sha256" \
-              "dist/it-projektzentrale_latest_all.deb" \
-              "dist/it-projektzentrale_latest_all.deb.sha256" \
-              --title "IT-Projektzentrale ${VERSION}" \
-              --generate-notes \
-              --latest
+            gh release create "$TAG" "${FILES[@]}" --title "IT-Projektzentrale ${VERSION}" --generate-notes --latest
           fi
