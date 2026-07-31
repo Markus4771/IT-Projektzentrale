@@ -14,7 +14,7 @@ def test_user_management_contains_safety_guards():
     assert "Der letzte aktive Administrator" in source
     assert "Das eigene Konto kann nicht gelöscht werden" in source
     assert "must_change_password=1" in source
-    assert set(("admin", "manager", "viewer")).issubset(source)
+    assert all(role in source for role in ("admin", "manager", "viewer"))
 
 
 def test_navigation_links_user_management():
