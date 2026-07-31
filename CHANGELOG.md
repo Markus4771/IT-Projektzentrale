@@ -2,6 +2,25 @@
 
 ## [Unveröffentlicht]
 
+## [1.1.1] – 2026-07-31
+
+### Behoben
+
+- SQLite-Startfehler `attempt to write a readonly database` bei frischen Installationen
+- unvollständige Rechtekorrektur nach Datenübernahme und Einrichtung der Python-Umgebung
+- Installationen, die trotz nicht erreichbarem Anwendungsdienst scheinbar erfolgreich endeten
+
+### Verbessert
+
+- zentrale, wiederholbare Reparatur der Zustandsverzeichnisrechte im Debian-Installationsskript
+- Schreibtest mit dem tatsächlichen systemd-Dienstbenutzer vor dem Dienststart
+- automatischer Health-Check nach Installation mit verständlicher Status- und Journal-Ausgabe bei Fehlern
+- einheitliche Versionsangabe in Anwendung, Paket und Installationsausgabe
+
+### Tests
+
+- Regressionstests für Versionskonsistenz, Rechtekorrektur, Schreibtest und Health-Check
+
 ## [1.0.0-beta.2] – 2026-07-18
 
 ### Sicherheit
