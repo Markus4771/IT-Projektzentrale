@@ -10,7 +10,8 @@ def test_v210_release_wiring():
     v230 = (ROOT / "app/v230.py").read_text(encoding="utf-8")
     v240 = (ROOT / "app/v240.py").read_text(encoding="utf-8")
     v250 = (ROOT / "app/v250.py").read_text(encoding="utf-8")
-    current = (ROOT / "app/v300.py").read_text(encoding="utf-8")
+    v300 = (ROOT / "app/v300.py").read_text(encoding="utf-8")
+    current = (ROOT / "app/v301.py").read_text(encoding="utf-8")
     service = (ROOT / "systemd/it-projektzentrale.service").read_text(encoding="utf-8")
     postinst = (ROOT / "debian/postinst").read_text(encoding="utf-8")
     assert 'VERSION = "2.1.0"' in source
@@ -19,10 +20,11 @@ def test_v210_release_wiring():
     assert "from app.v220_runtime import app" in v230
     assert "from app.v230 import app" in v240
     assert "from app.v240 import app" in v250
-    assert "from app.v250 import app" in current
-    assert "app.v300_runtime:app" in service
+    assert "from app.v250 import app" in v300
+    assert "import app.v300 as v300" in current
+    assert "app.v301_runtime:app" in service
     assert '\"version\":\"2.5.0\"' in postinst
-    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.0.0"
+    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.0.1"
     assert "app.version = VERSION" in runtime
 
 
