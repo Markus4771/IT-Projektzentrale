@@ -1,0 +1,40 @@
+{% extends 'base.html' %}{% block content %}
+<div class="page-head"><div><span class="badge">Version {{ management_version }}</span><h1>{{ project.name }}</h1><p class="lead">{{ project.description or 'Keine Beschreibung hinterlegt.' }}</p></div><div><a class="button secondary" href="/projects">Zurück</a>{% if project.project_url %}<a class="button" href="{{ project.project_url }}" target="_blank" rel="noopener">Öffnen</a>{% endif %}</div></div>
+{% if message %}<div class="notice">{{ message }}</div>{% endif %}
+<div class="stats"><div><b>{{ installed or 'Nicht installiert' }}</b><span>Installierte Version</span></div><div><b>{{ latest or project.version }}</b><span>Neueste Version</span></div><div><b>{{ services|selectattr('state','equalto','läuft')|list|length }}/{{ services|length }}</b><span>Laufende Dienste</span></div><div><b>{% if update_available %}Ja{% else %}Nein{% endif %}</b><span>Update verfügbar</span></div></div>
+<nav class="tabs">
+<a class="button {% if tab != 'general' %}secondary{% endif %}" href="?tab=general">Allgemein</a>
+<a class="button {% if tab != 'status' %}secondary{% endif %}" href="?tab=status">Status</a>
+<a class="button {% if tab != 'services' %}secondary{% endif %}" href="?tab=services">Dienste</a>
+<a class="button {% if tab != 'versions' %}secondary{% endif %}" href="?tab=versions">Versionen</a>
+<a class="button {% if tab != 'backups' %}secondary{% endif %}" href="?tab=backups">Backups</a>
+<a class="button {% if tab != 'git' %}secondary{% endif %}" href="?tab=git">Git</a>
+<a class="button {% if tab != 'settings' %}secondary{% endif %}" href="?tab=settings">Einstellungen</a>
+</nav>
+{% if tab == 'general' %}
+<section class="panel"><h2>Projektdaten bearbeiten</h2><form method="post" action="/manage/projects/{{ project.slug }}/general" class="form-grid">
+<label>Name<input name="name" value="{{ project.name }}" required></label><label>Kategorie<input name="category" value="{{ project.category }}"></label>
+<label>Status<input name="status" value="{{ project.status }}"></label><label>Version<input name="version" value="{{ project.version }}"></label>
+<label>Entwickler<input name="developer" value="{{ project.developer }}"></label><label>Lizenz<input name="license" value="{{ project.license }}"></label>
+<label>Projekt-URL<input name="project_url" value="{{ project.project_url }}"></label><label>Homepage<input name="homepage_url" value="{{ project.homepage_url }}"></label>
+<label>Repository<input name="repo_url" value="{{ project.repo_url }}"></label><label>Dokumentation<input name="docs_url" value="{{ project.docs_url }}"></label>
+<label>Icon<input name="icon" value="{{ project.icon }}" placeholder="z. B. server"></label><label>Port<input type="number" min="1" max="65535" name="port" value="{{ project.port or '' }}"></label>
+<label>Tags<input name="tags" value="{{ project.tags }}" placeholder="monitoring, intern"></label><label>Reihenfolge<input type="number" name="sort_order" value="{{ project.sort_order }}"></label>
+<label class="wide">Beschreibung<textarea name="description" rows="5">{{ project.description }}</textarea></label>
+<label><input type="checkbox" name="visible" {% if project.visible %}checked{% endif %}> Im Dashboard anzeigen</label><label><input type="checkbox" name="favorite" {% if project.favorite %}checked{% endif %}> Favorit</label>
+<div class="wide"><button>Änderungen speichern</button></div></form></section>
+{% elif tab == 'status' %}
+<section class="panel"><h2>Status</h2><p><b>Paket:</b> {{ project.package_name or 'nicht hinterlegt' }}</p><p><b>Installationspfad:</b> {{ project.install_path or 'nicht hinterlegt' }}</p><div class="grid">{% for service in services %}<article class="card"><h3>{{ service.display_name }}</h3><span class="badge">{{ service.state }}</span><p><code>{{ service.service_name }}</code></p><div class="actions"><form method="post" action="/projects/{{ project.id }}/service/start"><button>Starten</button></form><form method="post" action="/projects/{{ project.id }}/service/restart"><button>Neustarten</button></form><form method="post" action="/projects/{{ project.id }}/service/stop"><button class="danger">Stoppen</button></form></div></article>{% else %}<p>Keine Dienste hinterlegt.</p>{% endfor %}</div></section>
+{% elif tab == 'services' %}
+<section class="panel"><h2>Dienste</h2><form method="post" action="/manage/projects/{{ project.slug }}/services" class="form-grid"><label>Dienstname<input name="service_name" placeholder="beispiel.service" required></label><label>Anzeigename<input name="display_name" placeholder="Webanwendung"></label><div><button>Dienst hinzufügen</button></div></form></section>
+<section class="panel">{% for service in services %}<article class="notice"><b>{{ service.display_name }}</b> · {{ service.state }}<br><code>{{ service.service_name }}</code><form method="post" action="/manage/projects/{{ project.slug }}/services/{{ service.id }}/delete" data-confirm="Dienstzuordnung entfernen?"><button class="danger">Entfernen</button></form></article>{% else %}<p>Keine Dienste hinterlegt.</p>{% endfor %}</section>
+{% elif tab == 'versions' %}
+<section class="panel"><h2>Versionen und Pakete</h2>{% if update_available %}<div class="notice">Eine neuere Paketversion ist verfügbar.</div>{% endif %}{% for package in packages %}<article class="notice"><b>{{ package.version }}</b> · {{ package.filename }} · Quelle {{ package.source }}<br><small>{{ package.uploaded_at }} · SHA256 {{ package.sha256 }}</small></article>{% else %}<p>Keine Pakete hinterlegt.</p>{% endfor %}</section>
+{% elif tab == 'backups' %}
+<section class="panel"><div class="page-head"><h2>Backups</h2><form method="post" action="/projects/{{ project.id }}/backup"><button>Backup erstellen</button></form></div>{% for backup in backups %}<article class="notice"><b>{{ backup.filename }}</b><br><small>{{ backup.created_at }} · {{ backup.size_bytes }} Bytes</small></article>{% else %}<p>Noch keine Backups vorhanden.</p>{% endfor %}</section>
+{% elif tab == 'git' %}
+<section class="panel"><h2>GitHub / Gitea</h2><p><b>Repository:</b> {% if project.repo_url %}<a href="{{ project.repo_url }}" target="_blank" rel="noopener">{{ project.repo_url }}</a>{% else %}nicht hinterlegt{% endif %}</p>{% if source %}<p><b>Paketquelle:</b> {{ source.provider }} · {{ source.repository }}</p><p><b>Letzte Prüfung:</b> {{ source.last_checked_at or 'noch nie' }}</p>{% if source.last_error %}<div class="notice">{{ source.last_error }}</div>{% endif %}{% else %}<p>Keine Releasequelle eingerichtet.</p>{% endif %}</section>
+{% elif tab == 'settings' %}
+<section class="panel"><h2>Laufzeit und Sicherung</h2><form method="post" action="/manage/projects/{{ project.slug }}/runtime" class="form-grid"><label>Debian-Paket<input name="package_name" value="{{ project.package_name }}"></label><label>Hauptdienst<input name="service_name" value="{{ project.service_name }}"></label><label>Installationspfad<input name="install_path" value="{{ project.install_path }}"></label><label>Backuppfad<input name="backup_path" value="{{ project.backup_path }}"></label><label><input type="checkbox" name="autostart" {% if project.autostart %}checked{% endif %}> Autostart</label><label><input type="checkbox" name="backup_enabled" {% if project.backup_enabled %}checked{% endif %}> Automatische Backups</label><div class="wide"><button>Einstellungen speichern</button></div></form></section>
+{% endif %}
+{% endblock %}

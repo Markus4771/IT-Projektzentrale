@@ -47,9 +47,13 @@ install -m 0755 "$ROOT_DIR/debian/postinst" "$PACKAGE_ROOT/DEBIAN/postinst"
 install -m 0755 "$ROOT_DIR/debian/prerm" "$PACKAGE_ROOT/DEBIAN/prerm"
 install -m 0755 "$ROOT_DIR/debian/postrm" "$PACKAGE_ROOT/DEBIAN/postrm"
 
-SOURCE_VERSION=$(sed -n 's/^VERSION = "\([^"]*\)"/\1/p' "$ROOT_DIR/app/main.py")
+VERSION_SOURCE="$ROOT_DIR/app/main.py"
+if [[ -f "$ROOT_DIR/app/v110.py" ]]; then
+    VERSION_SOURCE="$ROOT_DIR/app/v110.py"
+fi
+SOURCE_VERSION=$(sed -n 's/^VERSION = "\([^"]*\)"/\1/p' "$VERSION_SOURCE")
 if [[ "$SOURCE_VERSION" != "$APP_VERSION" ]]; then
-    echo "Versionsfehler: app/main.py=$SOURCE_VERSION, version.txt=$APP_VERSION" >&2
+    echo "Versionsfehler: ${VERSION_SOURCE#$ROOT_DIR/}=$SOURCE_VERSION, version.txt=$APP_VERSION" >&2
     exit 1
 fi
 
