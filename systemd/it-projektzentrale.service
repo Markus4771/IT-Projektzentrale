@@ -9,7 +9,7 @@ User=it-projektzentrale
 Group=it-projektzentrale
 WorkingDirectory=/opt/it-projektzentrale
 EnvironmentFile=/etc/it-projektzentrale.conf
-ExecStart=/var/lib/it-projektzentrale/venv/bin/uvicorn app.v140:app --host 127.0.0.1 --port 8000 --proxy-headers --forwarded-allow-ips=127.0.0.1
+ExecStart=/var/lib/it-projektzentrale/venv/bin/uvicorn app.v150:app --host 127.0.0.1 --port 8000 --proxy-headers --forwarded-allow-ips=127.0.0.1
 Restart=on-failure
 RestartSec=3
 PrivateTmp=true
