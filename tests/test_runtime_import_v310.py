@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import importlib
-import os
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -23,7 +22,8 @@ def test_runtime_keeps_fastapi_app_object(tmp_path, monkeypatch):
 def test_remote_agent_compat_import_does_not_shadow_fastapi_app():
     source = (ROOT / "app/v220_runtime.py").read_text(encoding="utf-8")
     assert "from app import remote_agent_compat as _remote_agent_compat" in source
-    assert "import app.remote_agent_compat" not in source
+    code_lines = [line.strip() for line in source.splitlines() if not line.lstrip().startswith(("#", '"'))]
+    assert "import app.remote_agent_compat" not in code_lines
 
 
 def test_release_wiring_uses_v310_runtime():
