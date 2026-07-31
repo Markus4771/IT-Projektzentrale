@@ -12,7 +12,7 @@
   <div><strong>IT-Projektzentrale</strong><small> Zentrale Verwaltung deiner Projekte</small></div>
   <nav>
     {% if logged_in %}
-      <a href="/">Dashboard</a><a href="/projects">Projekte</a><a href="/app-store">App Store</a><a href="/software-center">Software-Center</a><a href="/plugins">Plugins</a><a href="/servers">Server</a><a href="/maintenance">Backup & Updates</a>
+      <a href="/">Dashboard</a><a href="/projects">Projekte</a><a href="/app-store">App Store</a><a href="/software-center">Software-Center</a><a href="/plugins">Plugins</a><a href="/servers">Server</a><a href="/infrastructure">Infrastruktur</a><a href="/maintenance">Backup & Updates</a>
       <a href="/installation">Installation</a><a href="/system">System</a>
       {% if current_user.role == 'admin' %}<a href="/admin">Administration</a><a href="/admin/users">Benutzer</a>{% endif %}
       <a href="/account/password">Passwort</a>
