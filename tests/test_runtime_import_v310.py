@@ -23,12 +23,13 @@ def test_remote_agent_compat_import_does_not_shadow_fastapi_app():
     assert "import app.remote_agent_compat" not in code_lines
 
 
-def test_release_wiring_advances_to_v330_runtime():
+def test_release_wiring_advances_to_v331_runtime():
     service = (ROOT / "systemd/it-projektzentrale.service").read_text(encoding="utf-8")
     postinst = (ROOT / "debian/postinst").read_text(encoding="utf-8")
     assert "app.v310_runtime:app" in service
     assert "app.v311_runtime:app" in service
     assert "app.v320_runtime:app" in service
     assert "app.v330_runtime:app" in service
-    assert "EXPECTED_VERSION=3.3.0" in postinst
-    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.3.0"
+    assert "app.v331_runtime:app" in service
+    assert "EXPECTED_VERSION=3.3.1" in postinst
+    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.3.1"
