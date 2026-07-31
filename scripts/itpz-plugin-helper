@@ -7,20 +7,35 @@ BASE=Path('/var/lib/it-projektzentrale/plugins')
 PACKAGES=Path('/var/lib/it-projektzentrale/uploads/plugins')
 ENABLED=BASE/'enabled'
 PLUGIN_RE=re.compile(r'^[a-z0-9][a-z0-9-]{1,62}$')
+SHA_RE=re.compile(r'^[a-f0-9]{64}$')
 ACTIONS={'install','update','enable','disable','remove'}
+MAX_MEMBERS=10000
+MAX_EXTRACTED_BYTES=536870912
 
 def safe_archive(path:Path)->None:
- with tarfile.open(path,'r:*') as t:
-  for m in t.getmembers():
-   p=Path(m.name)
-   if p.is_absolute() or '..' in p.parts or m.issym() or m.islnk(): raise RuntimeError('Unsicheres Plugin-Archiv')
+ total=0
+ with tarfile.open(path,'r:*') as archive:
+  members=archive.getmembers()
+  if len(members)>MAX_MEMBERS: raise RuntimeError('Plugin-Archiv enthält zu viele Einträge')
+  for member in members:
+   item=Path(member.name)
+   if item.is_absolute() or '..' in item.parts or member.issym() or member.islnk(): raise RuntimeError('Unsicheres Plugin-Archiv')
+   if not (member.isfile() or member.isdir()): raise RuntimeError('Nicht erlaubter Archiv-Eintrag')
+   total += max(0, member.size)
+   if total>MAX_EXTRACTED_BYTES: raise RuntimeError('Entpacktes Plugin ist zu groß')
 
 def manifest(root:Path,pid:str)->dict:
- p=root/'plugin.json'
- if not p.is_file(): raise RuntimeError('plugin.json fehlt')
- data=json.loads(p.read_text(encoding='utf-8'))
+ path=root/'plugin.json'
+ if not path.is_file(): raise RuntimeError('plugin.json fehlt')
+ data=json.loads(path.read_text(encoding='utf-8'))
  if data.get('id')!=pid: raise RuntimeError('Plugin-ID stimmt nicht überein')
  return data
+
+def normalize_permissions(root:Path)->None:
+ for path in root.rglob('*'):
+  if path.is_symlink(): raise RuntimeError('Symbolische Links sind im Plugin nicht erlaubt')
+  os.chmod(path,0o750 if path.is_dir() else 0o640)
+ os.chmod(root,0o750)
 
 def main()->int:
  if len(sys.argv)<3 or sys.argv[1] not in ACTIONS or not PLUGIN_RE.fullmatch(sys.argv[2]): return 2
@@ -29,24 +44,34 @@ def main()->int:
  target=(BASE/pid).resolve(); target.relative_to(BASE.resolve())
  link=ENABLED/pid
  if action in {'install','update'}:
-  if len(sys.argv)!=4: raise RuntimeError('Paketdatei fehlt')
+  if len(sys.argv)!=5 or not SHA_RE.fullmatch(sys.argv[4]): raise RuntimeError('Paketdatei oder erwartete Prüfsumme fehlt')
   name=Path(sys.argv[3]).name
   if not name.endswith(('.tar.gz','.tgz','.tar')): raise RuntimeError('Nicht unterstütztes Plugin-Paket')
   package=(PACKAGES/name).resolve(); package.relative_to(PACKAGES.resolve())
   if not package.is_file(): raise RuntimeError('Plugin-Paket fehlt')
+  digest=hashlib.sha256(package.read_bytes()).hexdigest()
+  if digest!=sys.argv[4]: raise RuntimeError('SHA256-Prüfung fehlgeschlagen')
   safe_archive(package)
-  with tempfile.TemporaryDirectory(dir=str(BASE)) as td:
-   tmp=Path(td); tarfile.open(package,'r:*').extractall(tmp)
-   roots=[x for x in tmp.iterdir()]
-   root=roots[0] if len(roots)==1 and roots[0].is_dir() else tmp
-   data=manifest(root,pid)
-   digest=hashlib.sha256(package.read_bytes()).hexdigest()
-   if data.get('sha256') and data['sha256']!=digest: raise RuntimeError('SHA256-Prüfung fehlgeschlagen')
-   backup=BASE/(pid+'.previous')
+  backup=BASE/(pid+'.previous')
+  staged=None
+  try:
+   with tempfile.TemporaryDirectory(dir=str(BASE)) as td:
+    tmp=Path(td)
+    with tarfile.open(package,'r:*') as archive: archive.extractall(tmp,filter='data')
+    roots=[item for item in tmp.iterdir()]
+    root=roots[0] if len(roots)==1 and roots[0].is_dir() else tmp
+    manifest(root,pid)
+    staged=BASE/(pid+'.staged')
+    if staged.exists(): shutil.rmtree(staged)
+    shutil.copytree(root,staged)
+    normalize_permissions(staged)
    if backup.exists(): shutil.rmtree(backup)
    if target.exists(): target.rename(backup)
-   shutil.copytree(root,target)
-   os.chmod(target,0o750)
+   staged.rename(target)
+  except Exception:
+   if staged and staged.exists(): shutil.rmtree(staged,ignore_errors=True)
+   if not target.exists() and backup.exists(): backup.rename(target)
+   raise
   print(json.dumps({'plugin_id':pid,'sha256':digest,'state':'installed'})); return 0
  if action=='enable':
   if not target.is_dir(): raise RuntimeError('Plugin ist nicht installiert')
