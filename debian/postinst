@@ -31,8 +31,10 @@ verify_state_writable() {
 wait_for_health() {
     attempt=0
     while [ "$attempt" -lt 20 ]; do
-        if curl -fsS --max-time 2 "$HEALTH_URL" >/dev/null 2>&1; then
-            return 0
+        if response=$(curl -fsS --max-time 2 "$HEALTH_URL" 2>/dev/null); then
+            case "$response" in
+                *'"status":"ok"'*'"version":"1.2.1"'*) return 0 ;;
+            esac
         fi
         attempt=$((attempt + 1))
         sleep 1
@@ -136,7 +138,9 @@ systemctl restart "$SERVICE"
 systemctl restart nginx.service
 
 if ! wait_for_health; then
-    echo "Fehler: IT-Projektzentrale wurde installiert, der Health-Check ist jedoch fehlgeschlagen." >&2
+    echo "Fehler: Der Health-Check meldet nicht die erwartete Version 1.2.1." >&2
+    curl -sS "$HEALTH_URL" >&2 || true
+    echo >&2
     systemctl status "$SERVICE" --no-pager -l >&2 || true
     journalctl -u "$SERVICE" -n 40 --no-pager >&2 || true
     exit 1
@@ -145,7 +149,7 @@ fi
 IP_ADDR=$(hostname -I 2>/dev/null | awk '{print $1}')
 [ -n "$IP_ADDR" ] || IP_ADDR="SERVER-IP"
 echo ""
-echo "IT-Projektzentrale 1.2.0 wurde erfolgreich eingerichtet."
+echo "IT-Projektzentrale 1.2.1 wurde erfolgreich eingerichtet."
 echo "Aufruf: http://$IP_ADDR/"
 if [ "$NEW_PASSWORD" -eq 1 ]; then
     echo "Initialzugang: /root/it-projektzentrale-initial-password"

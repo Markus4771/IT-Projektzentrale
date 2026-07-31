@@ -7,10 +7,13 @@ import sqlite3
 from fastapi import Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
+import app.main as main_module
 from app.v110 import app
 from app.main import audit, db, hash_password, render, require_admin
 
-VERSION = "1.2.0"
+VERSION = "1.2.1"
+main_module.VERSION = VERSION
+app.version = VERSION
 ROLES = {"admin": "Administrator", "manager": "Projektverwalter", "viewer": "Betrachter"}
 
 
