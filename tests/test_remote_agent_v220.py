@@ -18,7 +18,8 @@ def test_agent_is_packaged_and_restricted():
     agent = (ROOT / "agent/itpz-agent.py").read_text(encoding="utf-8")
     unit = (ROOT / "agent/itpz-agent.service").read_text(encoding="utf-8")
     build = (ROOT / "scripts/build_agent_deb.sh").read_text(encoding="utf-8")
-    assert "ALLOWED={'apt-update','apt-upgrade','backup','install'}" in agent
+    for action in ('apt-update','apt-upgrade','backup','install','compose-update','compose-rollback'):
+        assert action in agent
     assert "Authorization" in agent
     assert "shell=True" not in agent
     assert "ProtectSystem=strict" in unit
@@ -26,9 +27,11 @@ def test_agent_is_packaged_and_restricted():
     assert "itpz-agent_" in build
 
 
-def test_version_220_is_wired():
+def test_version_220_remains_in_release_chain():
     runtime = (ROOT / "app/v220_runtime.py").read_text(encoding="utf-8")
+    current = (ROOT / "app/v230.py").read_text(encoding="utf-8")
     service = (ROOT / "systemd/it-projektzentrale.service").read_text(encoding="utf-8")
     assert 'VERSION = "2.2.0"' in runtime
-    assert 'app.v220_runtime:app' in service
-    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "2.2.0"
+    assert 'from app.v220_runtime import app' in current
+    assert 'app.v230_runtime:app' in service
+    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "2.3.0"
