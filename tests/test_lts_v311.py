@@ -18,7 +18,7 @@ def test_v311_runtime_imports_real_fastapi_app(tmp_path, monkeypatch):
 
 def test_lts_installer_orders_services_and_preserves_state():
     postinst = (ROOT / "debian/postinst").read_text(encoding="utf-8")
-    assert "EXPECTED_VERSION=3.3.1" in postinst
+    assert "EXPECTED_VERSION=3.4.0" in postinst
     assert postinst.index('systemctl stop "$WORKER" "$MONITOR" "$SERVICE"') < postinst.index('systemctl start "$SERVICE"')
     assert postinst.index('systemctl start "$SERVICE"') < postinst.index('systemctl start "$WORKER"')
     assert postinst.index('systemctl start "$WORKER"') < postinst.index('systemctl start "$MONITOR"')
@@ -38,4 +38,5 @@ def test_lts_doctor_and_packaging_are_present():
     assert "app.v320_runtime:app" in service
     assert "app.v330_runtime:app" in service
     assert "app.v331_runtime:app" in service
-    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.3.1"
+    assert "app.v340_runtime:app" in service
+    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.4.0"
