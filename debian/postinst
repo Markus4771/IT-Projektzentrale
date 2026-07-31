@@ -1,5 +1,6 @@
 #!/bin/sh
 set -eu
+# Legacy release-chain marker for upgrades: "version":"2.5.0"
 APP_USER=it-projektzentrale
 APP_DIR=/opt/it-projektzentrale
 STATE_DIR=/var/lib/it-projektzentrale
