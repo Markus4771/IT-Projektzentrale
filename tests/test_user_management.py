@@ -6,15 +6,16 @@ def test_user_management_module_is_wired_into_current_release():
     user_module = (root / "app/v120.py").read_text(encoding="utf-8")
     v220 = (root / "app/v220.py").read_text(encoding="utf-8")
     v230 = (root / "app/v230.py").read_text(encoding="utf-8")
-    release_module = (root / "app/v240.py").read_text(encoding="utf-8")
+    v240 = (root / "app/v240.py").read_text(encoding="utf-8")
+    release_module = (root / "app/v250.py").read_text(encoding="utf-8")
     service = (root / "systemd/it-projektzentrale.service").read_text(encoding="utf-8")
-
     assert "ROLES =" in user_module
     assert "from app.v210_runtime import app" in v220
     assert "from app.v220_runtime import app" in v230
-    assert "from app.v230 import app" in release_module
-    assert "app.v240_runtime:app" in service
-    assert (root / "version.txt").read_text(encoding="utf-8").strip() == "2.4.0"
+    assert "from app.v230 import app" in v240
+    assert "from app.v240 import app" in release_module
+    assert "app.v250_runtime:app" in service
+    assert (root / "version.txt").read_text(encoding="utf-8").strip() == "2.5.0"
 
 
 def test_user_management_contains_safety_guards():
@@ -29,5 +30,5 @@ def test_user_management_contains_safety_guards():
 def test_navigation_links_platform_areas():
     root = Path(__file__).resolve().parents[1]
     template = (root / "templates/base.html").read_text(encoding="utf-8")
-    for target in ("/admin/users", "/app-store", "/plugins", "/servers", "/monitoring", "/compose", "/infrastructure", "/maintenance", "/installation"):
+    for target in ("/admin/users", "/marketplace", "/app-store", "/plugins", "/servers", "/monitoring", "/compose", "/infrastructure", "/maintenance", "/installation"):
         assert f'href="{target}"' in template
