@@ -4,13 +4,13 @@ from pathlib import Path
 def test_user_management_module_is_wired_into_current_release():
     root = Path(__file__).resolve().parents[1]
     user_module = (root / "app/v120.py").read_text(encoding="utf-8")
-    runtime_module = (root / "app/v170.py").read_text(encoding="utf-8")
+    runtime_module = (root / "app/v180.py").read_text(encoding="utf-8")
     service = (root / "systemd/it-projektzentrale.service").read_text(encoding="utf-8")
 
     assert "ROLES =" in user_module
-    assert "from app.v160_runtime import app" in runtime_module
-    assert "app.v170:app" in service
-    assert (root / "version.txt").read_text(encoding="utf-8").strip() == "1.7.0"
+    assert "from app.v170 import app" in runtime_module
+    assert "app.v180_runtime:app" in service
+    assert (root / "version.txt").read_text(encoding="utf-8").strip() == "1.8.0"
 
 
 def test_user_management_contains_safety_guards():
@@ -25,5 +25,5 @@ def test_user_management_contains_safety_guards():
 def test_navigation_links_platform_areas():
     root = Path(__file__).resolve().parents[1]
     template = (root / "templates/base.html").read_text(encoding="utf-8")
-    for target in ('/admin/users', '/app-store', '/plugins', '/servers'):
+    for target in ("/admin/users", "/app-store", "/plugins", "/servers", "/maintenance"):
         assert f'href="{target}"' in template
