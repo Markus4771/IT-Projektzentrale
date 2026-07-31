@@ -145,7 +145,7 @@ fi
 IP_ADDR=$(hostname -I 2>/dev/null | awk '{print $1}')
 [ -n "$IP_ADDR" ] || IP_ADDR="SERVER-IP"
 echo ""
-echo "IT-Projektzentrale 1.1.1 wurde erfolgreich eingerichtet."
+echo "IT-Projektzentrale 1.2.0 wurde erfolgreich eingerichtet."
 echo "Aufruf: http://$IP_ADDR/"
 if [ "$NEW_PASSWORD" -eq 1 ]; then
     echo "Initialzugang: /root/it-projektzentrale-initial-password"
