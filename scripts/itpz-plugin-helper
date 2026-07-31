@@ -1,0 +1,66 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+import hashlib, json, os, re, shutil, sys, tarfile, tempfile
+from pathlib import Path
+
+BASE=Path('/var/lib/it-projektzentrale/plugins')
+PACKAGES=Path('/var/lib/it-projektzentrale/uploads/plugins')
+ENABLED=BASE/'enabled'
+PLUGIN_RE=re.compile(r'^[a-z0-9][a-z0-9-]{1,62}$')
+ACTIONS={'install','update','enable','disable','remove'}
+
+def safe_archive(path:Path)->None:
+ with tarfile.open(path,'r:*') as t:
+  for m in t.getmembers():
+   p=Path(m.name)
+   if p.is_absolute() or '..' in p.parts or m.issym() or m.islnk(): raise RuntimeError('Unsicheres Plugin-Archiv')
+
+def manifest(root:Path,pid:str)->dict:
+ p=root/'plugin.json'
+ if not p.is_file(): raise RuntimeError('plugin.json fehlt')
+ data=json.loads(p.read_text(encoding='utf-8'))
+ if data.get('id')!=pid: raise RuntimeError('Plugin-ID stimmt nicht überein')
+ return data
+
+def main()->int:
+ if len(sys.argv)<3 or sys.argv[1] not in ACTIONS or not PLUGIN_RE.fullmatch(sys.argv[2]): return 2
+ action,pid=sys.argv[1],sys.argv[2]
+ BASE.mkdir(parents=True,exist_ok=True); PACKAGES.mkdir(parents=True,exist_ok=True); ENABLED.mkdir(parents=True,exist_ok=True)
+ target=(BASE/pid).resolve(); target.relative_to(BASE.resolve())
+ link=ENABLED/pid
+ if action in {'install','update'}:
+  if len(sys.argv)!=4: raise RuntimeError('Paketdatei fehlt')
+  name=Path(sys.argv[3]).name
+  if not name.endswith(('.tar.gz','.tgz','.tar')): raise RuntimeError('Nicht unterstütztes Plugin-Paket')
+  package=(PACKAGES/name).resolve(); package.relative_to(PACKAGES.resolve())
+  if not package.is_file(): raise RuntimeError('Plugin-Paket fehlt')
+  safe_archive(package)
+  with tempfile.TemporaryDirectory(dir=str(BASE)) as td:
+   tmp=Path(td); tarfile.open(package,'r:*').extractall(tmp)
+   roots=[x for x in tmp.iterdir()]
+   root=roots[0] if len(roots)==1 and roots[0].is_dir() else tmp
+   data=manifest(root,pid)
+   digest=hashlib.sha256(package.read_bytes()).hexdigest()
+   if data.get('sha256') and data['sha256']!=digest: raise RuntimeError('SHA256-Prüfung fehlgeschlagen')
+   backup=BASE/(pid+'.previous')
+   if backup.exists(): shutil.rmtree(backup)
+   if target.exists(): target.rename(backup)
+   shutil.copytree(root,target)
+   os.chmod(target,0o750)
+  print(json.dumps({'plugin_id':pid,'sha256':digest,'state':'installed'})); return 0
+ if action=='enable':
+  if not target.is_dir(): raise RuntimeError('Plugin ist nicht installiert')
+  if link.exists() or link.is_symlink(): link.unlink()
+  link.symlink_to(target); print('enabled'); return 0
+ if action=='disable':
+  if link.exists() or link.is_symlink(): link.unlink()
+  print('disabled'); return 0
+ if action=='remove':
+  if link.exists() or link.is_symlink(): link.unlink()
+  if target.exists(): shutil.rmtree(target)
+  print('removed'); return 0
+ return 2
+
+if __name__=='__main__':
+ try: raise SystemExit(main())
+ except Exception as exc: print(str(exc),file=sys.stderr); raise SystemExit(1)
