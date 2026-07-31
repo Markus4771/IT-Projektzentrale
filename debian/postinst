@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
-# Legacy release-chain markers: "version":"2.5.0" "version":"3.0.0" "version":"3.0.1"
-# Legacy success markers: IT-Projektzentrale 3.0.0 wurde erfolgreich eingerichtet. IT-Projektzentrale 3.0.1 wurde erfolgreich eingerichtet.
+# Legacy release-chain markers: "version":"2.5.0" "version":"3.0.0" "version":"3.0.1" "version":"3.0.2"
+# Legacy success markers: IT-Projektzentrale 3.0.0 wurde erfolgreich eingerichtet. IT-Projektzentrale 3.0.1 wurde erfolgreich eingerichtet. IT-Projektzentrale 3.0.2 wurde erfolgreich eingerichtet.
 APP_USER=it-projektzentrale
 APP_DIR=/opt/it-projektzentrale
 STATE_DIR=/var/lib/it-projektzentrale
@@ -12,7 +12,7 @@ SERVICE=it-projektzentrale.service
 WORKER=it-projektzentrale-worker.service
 MONITOR=it-projektzentrale-monitor.service
 HEALTH_URL=http://127.0.0.1:8000/health
-EXPECTED_VERSION=3.0.2
+EXPECTED_VERSION=3.1.0
 
 repair_state_permissions() {
  install -d -m 0750 -o "$APP_USER" -g "$APP_USER" "$STATE_DIR" "$STATE_DIR/data" "$STATE_DIR/uploads" "$STATE_DIR/uploads/packages" "$STATE_DIR/uploads/plugins" "$STATE_DIR/backups" "$STATE_DIR/backups/installations" "$STATE_DIR/backups/compose" "$STATE_DIR/exports"
@@ -23,7 +23,7 @@ repair_state_permissions() {
  find "$STATE_DIR/data" -type f -exec chmod 0640 {} \;
 }
 verify_state_writable() { runuser -u "$APP_USER" -- sh -c 'test -w "$1" && touch "$1/.write-test" && rm -f "$1/.write-test"' sh "$STATE_DIR/data"; }
-wait_for_health() { attempt=0; while [ "$attempt" -lt 45 ]; do if response=$(curl -fsS --max-time 2 "$HEALTH_URL" 2>/dev/null); then case "$response" in *'"status":"ok"'*'"version":"3.0.2"'*) return 0 ;; esac; fi; attempt=$((attempt + 1)); sleep 1; done; return 1; }
+wait_for_health() { attempt=0; while [ "$attempt" -lt 45 ]; do if response=$(curl -fsS --max-time 2 "$HEALTH_URL" 2>/dev/null); then case "$response" in *'"status":"ok"'*'"version":"3.1.0"'*) return 0 ;; esac; fi; attempt=$((attempt + 1)); sleep 1; done; return 1; }
 
 if ! getent passwd "$APP_USER" >/dev/null 2>&1; then adduser --system --group --home "$STATE_DIR" --no-create-home "$APP_USER"; fi
 repair_state_permissions
