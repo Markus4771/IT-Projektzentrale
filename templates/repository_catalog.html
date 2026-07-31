@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Repository-Katalog</h1>
+<p>GitHub- und Gitea-Konten durchsuchen, <code>projekt.yaml</code> erkennen und Projekte kontrolliert in den App-Store übernehmen.</p>
+{% if message %}<div class="message">{{ message }}</div>{% endif %}
+{% if error %}<div class="error">{{ error }}</div>{% endif %}
+{% if current_user.role == 'admin' %}
+<section class="card">
+<h2>Repository-Konto hinzufügen</h2>
+<form method="post" action="/repository-catalog/accounts" class="form-grid">
+<label>Name<input name="name" required maxlength="120"></label>
+<label>Anbieter<select name="provider"><option value="github">GitHub</option><option value="gitea">Gitea</option></select></label>
+<label>API-Basisadresse<input name="base_url" placeholder="https://api.github.com"></label>
+<label>Organisation/Eigentümer<input name="owner" placeholder="leer = Token-Benutzer"></label>
+<label>Secret<select name="secret_name"><option value="">Ohne Token</option>{% for name in secret_names %}<option value="{{ name }}">{{ name }}</option>{% endfor %}</select></label>
+<label><input type="checkbox" name="include_forks"> Forks einbeziehen</label>
+<label><input type="checkbox" name="include_archived"> Archivierte Repositories einbeziehen</label>
+<button type="submit">Konto anlegen</button>
+</form>
+</section>
+{% endif %}
+<section class="card"><h2>Konten</h2>
+<table><thead><tr><th>Name</th><th>Anbieter</th><th>Eigentümer</th><th>Status</th><th>Letzter Lauf</th><th>Aktion</th></tr></thead><tbody>
+{% for account in accounts %}<tr><td>{{ account.name }}</td><td>{{ account.provider }}</td><td>{{ account.owner or 'Token-Benutzer' }}</td><td>{{ account.last_status }}{% if account.last_error %}<br><small>{{ account.last_error }}</small>{% endif %}</td><td>{{ account.last_scanned_at or '–' }}</td><td>{% if current_user.role == 'admin' %}<form method="post" action="/repository-catalog/accounts/{{ account.id }}/discover"><button>Repositories erkennen</button></form>{% endif %}</td></tr>{% else %}<tr><td colspan="6">Noch keine Konten eingerichtet.</td></tr>{% endfor %}
+</tbody></table></section>
+<section class="card"><h2>Erkannte Repositories</h2>
+<table><thead><tr><th>Konto</th><th>Repository</th><th>Manifest</th><th>Projekt</th><th>Status</th><th>Aktion</th></tr></thead><tbody>
+{% for repo in repositories %}<tr><td>{{ repo.account_name }}</td><td>{% if repo.web_url %}<a href="{{ repo.web_url }}" rel="noopener">{{ repo.repository }}</a>{% else %}{{ repo.repository }}{% endif %}{% if repo.private %}<br><small>privat</small>{% endif %}</td><td>{{ repo.manifest_state }}{% if repo.manifest_error %}<br><small>{{ repo.manifest_error }}</small>{% endif %}</td><td>{{ repo.manifest_name or '–' }}{% if repo.manifest_version %} {{ repo.manifest_version }}{% endif %}</td><td>{% if repo.archived %}archiviert{% elif repo.fork %}Fork{% else %}aktiv{% endif %}</td><td>{% if current_user.role == 'admin' and repo.manifest_state == 'valid' %}<form method="post" action="/repository-catalog/repositories/{{ repo.id }}/apply"><button>In App-Store übernehmen</button></form>{% endif %}</td></tr>{% else %}<tr><td colspan="6">Noch keine Repositories erkannt.</td></tr>{% endfor %}
+</tbody></table></section>
+<section class="card"><h2>Erkennungsläufe</h2><table><thead><tr><th>Zeit</th><th>Konto</th><th>Status</th><th>Repositories</th><th>Manifeste</th><th>Fehler</th></tr></thead><tbody>{% for run in runs %}<tr><td>{{ run.started_at }}</td><td>{{ run.account_name }}</td><td>{{ run.state }}</td><td>{{ run.repositories_seen }}</td><td>{{ run.manifests_found }}</td><td>{{ run.errors }}{% if run.details %}<br><small>{{ run.details }}</small>{% endif %}</td></tr>{% else %}<tr><td colspan="6">Noch keine Läufe.</td></tr>{% endfor %}</tbody></table></section>
+{% endblock %}
