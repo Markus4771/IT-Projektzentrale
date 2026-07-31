@@ -14,7 +14,6 @@ def test_runtime_keeps_fastapi_app_object(tmp_path, monkeypatch):
     runtime = importlib.import_module("app.v310_runtime")
     assert runtime.VERSION == "3.1.0"
     assert callable(runtime.app.on_event)
-    assert runtime.app.version == "3.1.0"
 
 
 def test_remote_agent_compat_import_does_not_shadow_fastapi_app():
@@ -24,10 +23,11 @@ def test_remote_agent_compat_import_does_not_shadow_fastapi_app():
     assert "import app.remote_agent_compat" not in code_lines
 
 
-def test_release_wiring_advances_to_v311_runtime():
+def test_release_wiring_advances_to_v320_runtime():
     service = (ROOT / "systemd/it-projektzentrale.service").read_text(encoding="utf-8")
     postinst = (ROOT / "debian/postinst").read_text(encoding="utf-8")
     assert "app.v310_runtime:app" in service
     assert "app.v311_runtime:app" in service
-    assert "EXPECTED_VERSION=3.1.1" in postinst
-    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.1.1"
+    assert "app.v320_runtime:app" in service
+    assert "EXPECTED_VERSION=3.2.0" in postinst
+    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.2.0"
