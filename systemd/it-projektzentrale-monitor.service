@@ -1,17 +1,16 @@
 [Unit]
-Description=IT-Projektzentrale
-After=network-online.target
+Description=IT-Projektzentrale Monitoring-Worker
+After=network-online.target it-projektzentrale.service
 Wants=network-online.target
 
 [Service]
 Type=simple
 User=it-projektzentrale
 Group=it-projektzentrale
-WorkingDirectory=/opt/it-projektzentrale
 EnvironmentFile=/etc/it-projektzentrale.conf
-ExecStart=/var/lib/it-projektzentrale/venv/bin/uvicorn app.v240_runtime:app --host 127.0.0.1 --port 8000 --proxy-headers --forwarded-allow-ips=127.0.0.1
-Restart=on-failure
-RestartSec=3
+ExecStart=/usr/lib/it-projektzentrale/itpz-monitor-worker
+Restart=always
+RestartSec=10
 PrivateTmp=true
 PrivateDevices=true
 ProtectSystem=strict
@@ -23,7 +22,7 @@ RestrictSUIDSGID=true
 LockPersonality=true
 RestrictRealtime=true
 ReadWritePaths=/var/lib/it-projektzentrale
-NoNewPrivileges=false
+NoNewPrivileges=true
 UMask=0027
 
 [Install]

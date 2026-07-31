@@ -1,0 +1,105 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import json
+import operator
+import os
+import smtplib
+import sqlite3
+import subprocess
+import time
+import urllib.request
+from email.message import EmailMessage
+from pathlib import Path
+
+STATE = Path(os.environ.get("ITPZ_STATE_DIR", "/var/lib/it-projektzentrale"))
+DB = STATE / "data" / "projektzentrale.db"
+INTERVAL = max(30, int(os.environ.get("ITPZ_MONITOR_INTERVAL", "60")))
+OPS = {">": operator.gt, ">=": operator.ge, "<": operator.lt, "<=": operator.le, "==": operator.eq}
+
+
+def conn():
+    c = sqlite3.connect(DB, timeout=30)
+    c.row_factory = sqlite3.Row
+    return c
+
+
+def in_maintenance(c, server_id):
+    return bool(c.execute("SELECT 1 FROM maintenance_windows WHERE datetime('now') BETWEEN datetime(starts_at) AND datetime(ends_at) AND (server_id IS NULL OR server_id=?) LIMIT 1", (server_id,)).fetchone())
+
+
+def notify(rule, message):
+    channel = rule["notification_channel"]
+    target = rule["notification_target"]
+    if channel == "webhook" and target.startswith("https://"):
+        body = json.dumps({"source": "IT-Projektzentrale", "severity": rule["severity"], "rule": rule["name"], "message": message}).encode()
+        req = urllib.request.Request(target, data=body, method="POST", headers={"Content-Type": "application/json", "User-Agent": "ITPZ/2.4"})
+        with urllib.request.urlopen(req, timeout=10) as r:
+            r.read(1024)
+    elif channel == "email" and "@" in target:
+        host = os.environ.get("ITPZ_SMTP_HOST", "")
+        if not host:
+            return
+        msg = EmailMessage()
+        msg["Subject"] = f"[{rule['severity'].upper()}] {rule['name']}"
+        msg["From"] = os.environ.get("ITPZ_SMTP_FROM", "itpz@localhost")
+        msg["To"] = target
+        msg.set_content(message)
+        with smtplib.SMTP(host, int(os.environ.get("ITPZ_SMTP_PORT", "25")), timeout=10) as smtp:
+            user = os.environ.get("ITPZ_SMTP_USER", "")
+            password = os.environ.get("ITPZ_SMTP_PASSWORD", "")
+            if os.environ.get("ITPZ_SMTP_STARTTLS", "0") == "1":
+                smtp.starttls()
+            if user:
+                smtp.login(user, password)
+            smtp.send_message(msg)
+
+
+def evaluate_once():
+    with conn() as c:
+        rules = c.execute("SELECT * FROM monitoring_rules WHERE enabled=1 ORDER BY id").fetchall()
+        for rule in rules:
+            servers = c.execute("SELECT * FROM servers WHERE enabled=1 AND (? IS NULL OR id=?) ORDER BY id", (rule["server_id"], rule["server_id"])).fetchall()
+            for server in servers:
+                if in_maintenance(c, server["id"]):
+                    c.execute("INSERT INTO monitoring_runs(server_id,status,details_json) VALUES(?,'maintenance',?)", (server["id"], json.dumps({"rule_id": rule["id"]})))
+                    continue
+                snapshot = c.execute("SELECT * FROM server_snapshots WHERE server_id=? ORDER BY id DESC LIMIT 1", (server["id"],)).fetchone()
+                metric = rule["metric"]
+                if metric == "availability":
+                    value = 1.0 if server["last_status"] == "online" else 0.0
+                elif snapshot and metric in snapshot.keys():
+                    value = snapshot[metric]
+                else:
+                    value = None
+                if value is None:
+                    c.execute("INSERT INTO monitoring_runs(server_id,status,details_json) VALUES(?,'no-data',?)", (server["id"], json.dumps({"rule_id": rule["id"], "metric": metric})))
+                    continue
+                breached = OPS[rule["operator"]](float(value), float(rule["threshold"]))
+                c.execute("INSERT INTO monitoring_runs(server_id,status,details_json) VALUES(?,?,?)", (server["id"], "breach" if breached else "ok", json.dumps({"rule_id": rule["id"], "metric": metric, "value": value})))
+                active = c.execute("SELECT * FROM monitoring_alerts WHERE rule_id=? AND server_id=? AND state IN ('open','acknowledged') ORDER BY id DESC LIMIT 1", (rule["id"], server["id"])).fetchone()
+                if breached:
+                    recent = c.execute("SELECT COUNT(*) FROM (SELECT status FROM monitoring_runs WHERE server_id=? AND json_extract(details_json,'$.rule_id')=? ORDER BY id DESC LIMIT ? ) WHERE status='breach'", (server["id"], rule["id"], rule["consecutive_failures"])).fetchone()[0]
+                    if recent >= rule["consecutive_failures"] and not active:
+                        message = f"{server['name']}: {metric}={value} {rule['operator']} {rule['threshold']}"
+                        cur = c.execute("INSERT INTO monitoring_alerts(rule_id,server_id,severity,message,observed_value) VALUES(?,?,?,?,?)", (rule["id"], server["id"], rule["severity"], message, value))
+                        try:
+                            notify(rule, message)
+                            c.execute("UPDATE monitoring_alerts SET last_notification_at=CURRENT_TIMESTAMP WHERE id=?", (cur.lastrowid,))
+                        except Exception as exc:
+                            c.execute("UPDATE monitoring_alerts SET message=message||? WHERE id=?", (f" | Benachrichtigung fehlgeschlagen: {exc}"[:500], cur.lastrowid))
+                    elif active:
+                        c.execute("UPDATE monitoring_alerts SET observed_value=?,updated_at=CURRENT_TIMESTAMP WHERE id=?", (value, active["id"]))
+                elif active:
+                    c.execute("UPDATE monitoring_alerts SET state='resolved',resolved_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=?", (active["id"],))
+        c.commit()
+
+
+if __name__ == "__main__":
+    while True:
+        try:
+            if DB.exists():
+                evaluate_once()
+        except Exception as exc:
+            print(f"monitoring cycle failed: {exc}", flush=True)
+        time.sleep(INTERVAL)

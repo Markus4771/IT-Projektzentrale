@@ -10,6 +10,7 @@ NGINX_AVAILABLE=/etc/nginx/sites-available/it-projektzentrale.conf
 NGINX_ENABLED=/etc/nginx/sites-enabled/it-projektzentrale.conf
 SERVICE=it-projektzentrale.service
 WORKER=it-projektzentrale-worker.service
+MONITOR=it-projektzentrale-monitor.service
 CONFIG=/etc/it-projektzentrale.conf
 HEALTH_URL=http://127.0.0.1:8000/health
 
@@ -25,7 +26,7 @@ verify_state_writable() { runuser -u "$APP_USER" -- sh -c 'test -w "$1" && touch
 wait_for_health() {
     attempt=0
     while [ "$attempt" -lt 20 ]; do
-        if response=$(curl -fsS --max-time 2 "$HEALTH_URL" 2>/dev/null); then case "$response" in *'"status":"ok"'*'"version":"2.3.0"'*) return 0 ;; esac; fi
+        if response=$(curl -fsS --max-time 2 "$HEALTH_URL" 2>/dev/null); then case "$response" in *'"status":"ok"'*'"version":"2.4.0"'*) return 0 ;; esac; fi
         attempt=$((attempt + 1)); sleep 1
     done
     return 1
@@ -62,9 +63,11 @@ ITPZ_STATE_DIR=$STATE_DIR
 ITPZ_SYSTEM_HELPER=/usr/lib/it-projektzentrale/itpz-helper
 ITPZ_MAX_UPLOAD_BYTES=268435456
 ITPZ_WORKER_POLL_SECONDS=5
+ITPZ_MONITOR_INTERVAL=60
 EOF_CONFIG
     if [ "$HAS_USERS" -eq 0 ]; then printf 'Benutzer: admin\nInitialpasswort: %s\n' "$INITIAL_PASSWORD" > /root/it-projektzentrale-initial-password; chmod 0600 /root/it-projektzentrale-initial-password; NEW_PASSWORD=1; fi
 fi
+if ! grep -q '^ITPZ_MONITOR_INTERVAL=' "$CONFIG"; then echo 'ITPZ_MONITOR_INTERVAL=60' >> "$CONFIG"; fi
 chmod 0600 "$CONFIG"
 cat > /etc/sudoers.d/it-projektzentrale <<'EOF_SUDOERS'
 it-projektzentrale ALL=(root) NOPASSWD: /usr/lib/it-projektzentrale/itpz-helper *
@@ -76,16 +79,16 @@ rm -f /etc/nginx/sites-enabled/it-projektzentrale; ln -sfn "$NGINX_AVAILABLE" "$
 systemctl daemon-reload
 /usr/lib/it-projektzentrale/itpz-helper rebuild-allowlists || true
 if ! nginx -t; then echo "Fehler: Die Nginx-Konfiguration ist ungültig." >&2; exit 1; fi
-systemctl enable "$SERVICE" "$WORKER" nginx.service >/dev/null 2>&1 || true
-systemctl restart "$SERVICE"; systemctl restart "$WORKER"; systemctl restart nginx.service
+systemctl enable "$SERVICE" "$WORKER" "$MONITOR" nginx.service >/dev/null 2>&1 || true
+systemctl restart "$SERVICE"; systemctl restart "$WORKER"; systemctl restart "$MONITOR"; systemctl restart nginx.service
 if ! wait_for_health; then
-    echo "Fehler: Der Health-Check meldet nicht die erwartete Version 2.3.0." >&2
+    echo "Fehler: Der Health-Check meldet nicht die erwartete Version 2.4.0." >&2
     curl -sS "$HEALTH_URL" >&2 || true; echo >&2
-    systemctl status "$SERVICE" "$WORKER" --no-pager -l >&2 || true
-    journalctl -u "$SERVICE" -u "$WORKER" -n 60 --no-pager >&2 || true
+    systemctl status "$SERVICE" "$WORKER" "$MONITOR" --no-pager -l >&2 || true
+    journalctl -u "$SERVICE" -u "$WORKER" -u "$MONITOR" -n 60 --no-pager >&2 || true
     exit 1
 fi
 IP_ADDR=$(hostname -I 2>/dev/null | awk '{print $1}'); [ -n "$IP_ADDR" ] || IP_ADDR="SERVER-IP"
-echo ""; echo "IT-Projektzentrale 2.3.0 wurde erfolgreich eingerichtet."; echo "Aufruf: http://$IP_ADDR/"
+echo ""; echo "IT-Projektzentrale 2.4.0 wurde erfolgreich eingerichtet."; echo "Aufruf: http://$IP_ADDR/"
 if [ "$NEW_PASSWORD" -eq 1 ]; then echo "Initialzugang: /root/it-projektzentrale-initial-password"; echo "Beim ersten Login muss das Passwort geändert werden."; fi
 exit 0

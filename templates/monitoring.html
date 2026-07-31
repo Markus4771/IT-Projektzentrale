@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-head"><div><h1>Monitoring & Alarmierung</h1><p class="lead">Serverzustände überwachen, Grenzwerte definieren und Alarme bestätigen.</p></div></div>
+{% if message %}<div class="notice success">{{ message }}</div>{% endif %}
+{% if error %}<div class="notice error-box">{{ error }}</div>{% endif %}
+<section class="stats">
+<article><b>{{ rules|selectattr('enabled','equalto',1)|list|length }}</b><span>aktive Regeln</span></article>
+<article><b>{{ alerts|selectattr('state','equalto','open')|list|length }}</b><span>offene Alarme</span></article>
+<article><b>{{ alerts|selectattr('state','equalto','acknowledged')|list|length }}</b><span>bestätigt</span></article>
+<article><b>{{ windows|length }}</b><span>Wartungsfenster</span></article>
+</section>
+<section class="panel"><h2>Aktuelle Alarme</h2>
+<div class="table-wrap"><table><thead><tr><th>Status</th><th>Schweregrad</th><th>Server</th><th>Regel</th><th>Meldung</th><th>Zeit</th><th>Aktion</th></tr></thead><tbody>
+{% for a in alerts %}<tr><td><span class="badge">{{ a.state }}</span></td><td>{{ a.severity }}</td><td>{{ a.server_name or 'Alle' }}</td><td>{{ a.rule_name }}</td><td>{{ a.message }}</td><td>{{ a.updated_at }}</td><td>{% if a.state == 'open' and current_user.role == 'admin' %}<form method="post" action="/monitoring/alerts/{{ a.id }}/ack"><button>Bestätigen</button></form>{% endif %}</td></tr>{% else %}<tr><td colspan="7">Keine Alarme vorhanden.</td></tr>{% endfor %}
+</tbody></table></div></section>
+<section class="panel"><h2>Alarmregeln</h2>
+<div class="table-wrap"><table><thead><tr><th>Name</th><th>Server</th><th>Bedingung</th><th>Schweregrad</th><th>Kanal</th><th>Status</th></tr></thead><tbody>
+{% for r in rules %}<tr><td>{{ r.name }}</td><td>{{ r.server_name or 'Alle Server' }}</td><td>{{ r.metric }} {{ r.operator }} {{ r.threshold }} ({{ r.consecutive_failures }}×)</td><td>{{ r.severity }}</td><td>{{ r.notification_channel }}</td><td>{% if current_user.role == 'admin' %}<form method="post" action="/monitoring/rules/{{ r.id }}/toggle"><button>{{ 'Deaktivieren' if r.enabled else 'Aktivieren' }}</button></form>{% else %}{{ 'aktiv' if r.enabled else 'inaktiv' }}{% endif %}</td></tr>{% endfor %}
+</tbody></table></div></section>
+{% if current_user.role == 'admin' %}
+<section class="panel"><h2>Alarmregel anlegen</h2><form method="post" action="/monitoring/rules/add" class="edit-grid">
+<label>Name<input name="name" required maxlength="120"></label><label>Server<select name="server_id"><option value="">Alle Server</option>{% for s in servers %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}</select></label>
+<label>Messwert<select name="metric">{% for m in metrics %}<option>{{ m }}</option>{% endfor %}</select></label><label>Operator<select name="operator"><option>&gt;</option><option>&gt;=</option><option>&lt;</option><option>&lt;=</option><option>==</option></select></label>
+<label>Grenzwert<input name="threshold" type="number" step="0.1" required></label><label>Schweregrad<select name="severity"><option>warning</option><option>critical</option><option>info</option></select></label>
+<label>Fehlmessungen<input name="consecutive_failures" type="number" min="1" max="20" value="2"></label><label>Kanal<select name="notification_channel"><option value="none">Nur Oberfläche</option><option value="webhook">Webhook</option><option value="email">E-Mail</option></select></label>
+<label style="grid-column:1/-1">Ziel<input name="notification_target" placeholder="https://... oder admin@example.de"></label><div><button>Regel speichern</button></div></form></section>
+<section class="panel"><h2>Wartungsfenster</h2><form method="post" action="/monitoring/windows/add" class="edit-grid">
+<label>Name<input name="name" required></label><label>Server<select name="server_id"><option value="">Alle Server</option>{% for s in servers %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}</select></label>
+<label>Beginn<input name="starts_at" type="datetime-local" required></label><label>Ende<input name="ends_at" type="datetime-local" required></label><label style="grid-column:1/-1">Grund<textarea name="reason"></textarea></label><div><button>Wartungsfenster anlegen</button></div></form>
+{% for w in windows %}<p><strong>{{ w.name }}</strong> · {{ w.server_name or 'Alle Server' }} · {{ w.starts_at }} bis {{ w.ends_at }} · {{ w.reason }}</p>{% endfor %}</section>
+{% endif %}
+<section class="panel"><h2>Letzte Prüfungen</h2><div class="table-wrap"><table><thead><tr><th>Zeit</th><th>Server</th><th>Status</th><th>Details</th></tr></thead><tbody>{% for r in runs %}<tr><td>{{ r.checked_at }}</td><td>{{ r.server_name or '–' }}</td><td>{{ r.status }}</td><td><code>{{ r.details_json }}</code></td></tr>{% endfor %}</tbody></table></div></section>
+{% endblock %}

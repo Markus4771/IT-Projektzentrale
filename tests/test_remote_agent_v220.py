@@ -29,9 +29,11 @@ def test_agent_is_packaged_and_restricted():
 
 def test_version_220_remains_in_release_chain():
     runtime = (ROOT / "app/v220_runtime.py").read_text(encoding="utf-8")
-    current = (ROOT / "app/v230.py").read_text(encoding="utf-8")
+    v230 = (ROOT / "app/v230.py").read_text(encoding="utf-8")
+    current = (ROOT / "app/v240.py").read_text(encoding="utf-8")
     service = (ROOT / "systemd/it-projektzentrale.service").read_text(encoding="utf-8")
     assert 'VERSION = "2.2.0"' in runtime
-    assert 'from app.v220_runtime import app' in current
-    assert 'app.v230_runtime:app' in service
-    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "2.3.0"
+    assert 'from app.v220_runtime import app' in v230
+    assert 'from app.v230 import app' in current
+    assert 'app.v240_runtime:app' in service
+    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "2.4.0"
