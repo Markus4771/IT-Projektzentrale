@@ -2,7 +2,6 @@ from __future__ import annotations
 
 """Version 2.5.0: sicherer Marketplace und Plugin-Lebenszyklus."""
 
-import hashlib
 import json
 import re
 import subprocess
@@ -20,6 +19,7 @@ VERSION = "2.5.0"
 base.VERSION = VERSION
 app.version = VERSION
 PLUGIN_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{1,62}$")
+VERSION_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+~-]{0,39}$")
 PERMISSIONS = {"network", "filesystem-read", "filesystem-write", "database-read", "database-write", "notifications", "server-status"}
 ACTIONS = {"install", "update", "enable", "disable", "remove"}
 HELPER = "/usr/lib/it-projektzentrale/itpz-plugin-helper"
@@ -76,10 +76,10 @@ def _json_list(value: str, allowed: set[str] | None = None) -> list[str]:
     return sorted(set(items))
 
 
-def _run_helper(action: str, plugin_id: str, package_file: str = "") -> dict:
+def _run_helper(action: str, plugin_id: str, package_file: str = "", expected_sha256: str = "") -> dict:
     args = ["/usr/bin/sudo", HELPER, action, plugin_id]
-    if package_file:
-        args.append(Path(package_file).name)
+    if action in {"install", "update"}:
+        args.extend([Path(package_file).name, expected_sha256])
     result = subprocess.run(args, capture_output=True, text=True, timeout=900, check=False)
     return {"state": "succeeded" if result.returncode == 0 else "failed", "output": result.stdout[-100000:], "error": result.stderr[-100000:]}
 
@@ -120,19 +120,22 @@ def publisher_trust(publisher_id: int, request: Request):
 def package_add(request: Request, plugin_id: str = Form(...), name: str = Form(...), version: str = Form(...), description: str = Form(""), package_url: str = Form(""), sha256: str = Form(...), publisher_fingerprint: str = Form(...), permissions: str = Form(""), dependencies: str = Form(""), signature: str = Form("")):
     require_admin(request)
     pid = plugin_id.strip().lower()
+    clean_version = version.strip()
     digest = sha256.strip().lower()
     fp = re.sub(r"[^A-Fa-f0-9]", "", publisher_fingerprint).lower()
-    if not PLUGIN_ID_RE.fullmatch(pid) or not re.fullmatch(r"[a-f0-9]{64}", digest) or len(fp) != 64:
+    if not PLUGIN_ID_RE.fullmatch(pid) or not VERSION_RE.fullmatch(clean_version) or not re.fullmatch(r"[a-f0-9]{64}", digest) or len(fp) != 64:
         raise HTTPException(400, "Ungültiges Plugin-Manifest")
     perms = _json_list(permissions, PERMISSIONS)
     deps = _json_list(dependencies)
-    manifest = {"id": pid, "name": name.strip()[:120], "version": version.strip()[:40], "permissions": perms, "dependencies": deps, "sha256": digest, "publisher": fp}
+    if any(not PLUGIN_ID_RE.fullmatch(dep) for dep in deps):
+        raise HTTPException(400, "Ungültige Plugin-Abhängigkeit")
+    manifest = {"id": pid, "name": name.strip()[:120], "version": clean_version, "permissions": perms, "dependencies": deps, "publisher": fp}
     with db() as conn:
         pub = conn.execute("SELECT trusted FROM marketplace_publishers WHERE fingerprint=?", (fp,)).fetchone()
         if not pub:
             raise HTTPException(400, "Herausgeber ist nicht registriert")
-        conn.execute("INSERT INTO marketplace_packages(plugin_id,name,version,description,package_url,sha256,signature,publisher_fingerprint,permissions_json,dependencies_json,manifest_json) VALUES(?,?,?,?,?,?,?,?,?,?,?)", (pid, name.strip()[:120], version.strip()[:40], description.strip()[:1000], package_url.strip()[:1000], digest, signature.strip()[:20000], fp, json.dumps(perms), json.dumps(deps), json.dumps(manifest)))
-    audit("marketplace.package_added", None, f"{pid}:{version}")
+        conn.execute("INSERT INTO marketplace_packages(plugin_id,name,version,description,package_url,sha256,signature,publisher_fingerprint,permissions_json,dependencies_json,manifest_json) VALUES(?,?,?,?,?,?,?,?,?,?,?)", (pid, name.strip()[:120], clean_version, description.strip()[:1000], package_url.strip()[:1000], digest, signature.strip()[:20000], fp, json.dumps(perms), json.dumps(deps), json.dumps(manifest)))
+    audit("marketplace.package_added", None, f"{pid}:{clean_version}")
     return RedirectResponse("/marketplace?message=Plugin-Paket+wurde+registriert", 303)
 
 
@@ -141,10 +144,12 @@ def plugin_action(plugin_id: str, request: Request, action: str = Form(...), pac
     user = require_admin(request)
     if not PLUGIN_ID_RE.fullmatch(plugin_id) or action not in ACTIONS:
         raise HTTPException(400, "Ungültige Plugin-Aktion")
+    if action in {"install", "update"} and (not package_id or not package_file):
+        raise HTTPException(400, "Paket und Paketdatei sind für Installation oder Update erforderlich")
     package = None
     with db() as conn:
         if package_id:
-            package = conn.execute("SELECT m.*,p.trusted publisher_trusted FROM marketplace_packages m LEFT JOIN marketplace_publishers p ON p.fingerprint=m.publisher_fingerprint WHERE m.id=? AND m.plugin_id=?", (package_id, plugin_id)).fetchone()
+            package = conn.execute("SELECT m.*,p.trusted publisher_trusted FROM marketplace_packages m LEFT JOIN marketplace_publishers p ON p.fingerprint=m.publisher_fingerprint WHERE m.id=? AND m.plugin_id=? AND m.available=1", (package_id, plugin_id)).fetchone()
             if not package or not package["publisher_trusted"]:
                 raise HTTPException(400, "Plugin-Herausgeber ist nicht vertrauenswürdig")
             deps = json.loads(package["dependencies_json"] or "[]")
@@ -155,7 +160,7 @@ def plugin_action(plugin_id: str, request: Request, action: str = Form(...), pac
         cursor = conn.execute("INSERT INTO plugin_jobs(plugin_id,action,created_by) VALUES(?,?,?)", (plugin_id, action, user["id"]))
         job_id = cursor.lastrowid
     try:
-        result = _run_helper(action, plugin_id, package_file)
+        result = _run_helper(action, plugin_id, package_file, package["sha256"] if package else "")
         if result["state"] != "succeeded":
             raise RuntimeError(result["error"] or "Plugin-Aktion fehlgeschlagen")
         with db() as conn:
