@@ -8,16 +8,18 @@ def test_v190_release_wiring():
     runtime = (ROOT / "app/v190_runtime.py").read_text(encoding="utf-8")
     v200 = (ROOT / "app/v200.py").read_text(encoding="utf-8")
     v210 = (ROOT / "app/v210.py").read_text(encoding="utf-8")
-    current = (ROOT / "app/v220.py").read_text(encoding="utf-8")
+    v220 = (ROOT / "app/v220.py").read_text(encoding="utf-8")
+    current = (ROOT / "app/v230.py").read_text(encoding="utf-8")
     service = (ROOT / "systemd/it-projektzentrale.service").read_text(encoding="utf-8")
     assert 'VERSION = "1.9.0"' in source
     assert 'VERSION = "1.9.0"' in runtime
     assert "app.v180_runtime" in runtime
     assert "from app.v190 import app" in v200
     assert "from app.v200 import app" in v210
-    assert "from app.v210_runtime import app" in current
-    assert "app.v220_runtime:app" in service
-    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "2.2.0"
+    assert "from app.v210_runtime import app" in v220
+    assert "from app.v220_runtime import app" in current
+    assert "app.v230_runtime:app" in service
+    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "2.3.0"
 
 
 def test_infrastructure_has_guardrails():

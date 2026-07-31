@@ -3,7 +3,7 @@ set -euo pipefail
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 VERSION=$(tr -d '[:space:]' < "$ROOT/version.txt")
 BUILD=$(mktemp -d); trap 'rm -rf "$BUILD"' EXIT
-P="$BUILD/package"; mkdir -p "$P/DEBIAN" "$P/usr/lib/itpz-agent" "$P/etc/systemd/system" "$P/var/lib/itpz-agent/packages" "$ROOT/dist"
+P="$BUILD/package"; mkdir -p "$P/DEBIAN" "$P/usr/lib/itpz-agent" "$P/etc/systemd/system" "$P/var/lib/itpz-agent/packages" "$P/var/lib/itpz-agent/backups/compose" "$P/srv/itpz-compose" "$ROOT/dist"
 install -m 0755 "$ROOT/agent/itpz-agent.py" "$P/usr/lib/itpz-agent/itpz-agent.py"
 install -m 0644 "$ROOT/agent/itpz-agent.service" "$P/etc/systemd/system/itpz-agent.service"
 cat > "$P/DEBIAN/control" <<EOF
@@ -19,7 +19,8 @@ EOF
 cat > "$P/DEBIAN/postinst" <<'EOF'
 #!/bin/sh
 set -eu
-install -d -m 0700 /var/lib/itpz-agent /var/lib/itpz-agent/packages /var/lib/itpz-agent/backups /var/lib/itpz-agent/jobs
+install -d -m 0700 /var/lib/itpz-agent /var/lib/itpz-agent/packages /var/lib/itpz-agent/backups /var/lib/itpz-agent/backups/compose /var/lib/itpz-agent/jobs
+install -d -m 0750 /srv/itpz-compose
 if [ ! -f /etc/itpz-agent.conf ]; then
   umask 077
   cat > /etc/itpz-agent.conf <<CONF
