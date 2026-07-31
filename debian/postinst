@@ -11,6 +11,7 @@ SERVICE=it-projektzentrale.service
 WORKER=it-projektzentrale-worker.service
 MONITOR=it-projektzentrale-monitor.service
 HEALTH_URL=http://127.0.0.1:8000/health
+EXPECTED_VERSION=3.0.1
 
 repair_state_permissions() {
  install -d -m 0750 -o "$APP_USER" -g "$APP_USER" "$STATE_DIR" "$STATE_DIR/data" "$STATE_DIR/uploads" "$STATE_DIR/uploads/packages" "$STATE_DIR/uploads/plugins" "$STATE_DIR/backups" "$STATE_DIR/backups/installations" "$STATE_DIR/backups/compose" "$STATE_DIR/exports"
@@ -21,7 +22,7 @@ repair_state_permissions() {
  find "$STATE_DIR/data" -type f -exec chmod 0640 {} \;
 }
 verify_state_writable() { runuser -u "$APP_USER" -- sh -c 'test -w "$1" && touch "$1/.write-test" && rm -f "$1/.write-test"' sh "$STATE_DIR/data"; }
-wait_for_health() { attempt=0; while [ "$attempt" -lt 30 ]; do if response=$(curl -fsS --max-time 2 "$HEALTH_URL" 2>/dev/null); then case "$response" in *'"status":"ok"'*'"version":"3.0.0"'*) return 0 ;; esac; fi; attempt=$((attempt + 1)); sleep 1; done; return 1; }
+wait_for_health() { attempt=0; while [ "$attempt" -lt 30 ]; do if response=$(curl -fsS --max-time 2 "$HEALTH_URL" 2>/dev/null); then case "$response" in *'"status":"ok"'*'"version":"3.0.1"'*) return 0 ;; esac; fi; attempt=$((attempt + 1)); sleep 1; done; return 1; }
 
 if ! getent passwd "$APP_USER" >/dev/null 2>&1; then adduser --system --group --home "$STATE_DIR" --no-create-home "$APP_USER"; fi
 repair_state_permissions
@@ -32,11 +33,22 @@ runuser -u "$APP_USER" -- "$VENV_DIR/bin/pip" install --disable-pip-version-chec
 runuser -u "$APP_USER" -- "$VENV_DIR/bin/pip" install --disable-pip-version-check -r "$APP_DIR/requirements.txt"
 repair_state_permissions; verify_state_writable
 
-if [ ! -f "$MASTER_KEY" ]; then
+if [ ! -s "$MASTER_KEY" ]; then
+ umask 077
  "$VENV_DIR/bin/python" - <<'PY' > "$MASTER_KEY"
 from cryptography.fernet import Fernet
 print(Fernet.generate_key().decode())
 PY
+fi
+if ! "$VENV_DIR/bin/python" - "$MASTER_KEY" <<'PY'
+from cryptography.fernet import Fernet
+from pathlib import Path
+import sys
+Fernet(Path(sys.argv[1]).read_bytes().strip())
+PY
+then
+ echo "Fehler: Der bestehende Master-Key ist ungültig. Aus Sicherheitsgründen wurde er nicht ersetzt." >&2
+ exit 1
 fi
 chown root:"$APP_USER" "$MASTER_KEY"; chmod 0640 "$MASTER_KEY"
 
@@ -74,9 +86,12 @@ systemctl daemon-reload
 /usr/lib/it-projektzentrale/itpz-helper rebuild-allowlists || true
 nginx -t
 systemctl enable "$SERVICE" "$WORKER" "$MONITOR" nginx.service >/dev/null 2>&1 || true
-systemctl restart "$SERVICE" "$WORKER" "$MONITOR" nginx.service
-if ! wait_for_health; then echo "Fehler: Health-Check meldet nicht Version 3.0.0." >&2; journalctl -u "$SERVICE" -u "$WORKER" -u "$MONITOR" -n 80 --no-pager >&2 || true; exit 1; fi
+systemctl restart "$SERVICE"
+systemctl restart "$WORKER"
+systemctl restart "$MONITOR"
+systemctl restart nginx.service
+if ! wait_for_health; then echo "Fehler: Health-Check meldet nicht Version $EXPECTED_VERSION." >&2; systemctl status "$SERVICE" "$WORKER" "$MONITOR" --no-pager -l >&2 || true; journalctl -u "$SERVICE" -u "$WORKER" -u "$MONITOR" -n 80 --no-pager >&2 || true; exit 1; fi
 IP_ADDR=$(hostname -I 2>/dev/null | awk '{print $1}'); [ -n "$IP_ADDR" ] || IP_ADDR=SERVER-IP
-echo "IT-Projektzentrale 3.0.0 wurde erfolgreich eingerichtet. Aufruf: http://$IP_ADDR/"
+echo "IT-Projektzentrale $EXPECTED_VERSION wurde erfolgreich eingerichtet. Aufruf: http://$IP_ADDR/"
 [ "$NEW_PASSWORD" -eq 0 ] || echo "Initialzugang: /root/it-projektzentrale-initial-password"
 exit 0
