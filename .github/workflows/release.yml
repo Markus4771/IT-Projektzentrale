@@ -7,6 +7,9 @@ on:
     paths:
       - version.txt
       - app/**
+      - templates/**
+      - static/**
+      - systemd/**
       - scripts/build_deb.sh
       - debian/**
       - .github/workflows/release.yml
@@ -40,7 +43,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 -m pip install -r requirements.txt -r requirements-dev.txt
-          python3 -m py_compile app/main.py app/v110.py scripts/itpz-helper
+          python3 -m compileall -q app scripts/itpz-helper
           python3 -m pytest -q
           bash -n install.sh scripts/build_deb.sh
           sh -n debian/postinst debian/prerm debian/postrm
