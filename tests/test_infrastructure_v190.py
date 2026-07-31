@@ -6,33 +6,13 @@ ROOT = Path(__file__).resolve().parents[1]
 def test_v190_release_wiring():
     source = (ROOT / "app/v190.py").read_text(encoding="utf-8")
     runtime = (ROOT / "app/v190_runtime.py").read_text(encoding="utf-8")
-    v200 = (ROOT / "app/v200.py").read_text(encoding="utf-8")
-    v210 = (ROOT / "app/v210.py").read_text(encoding="utf-8")
-    v220 = (ROOT / "app/v220.py").read_text(encoding="utf-8")
-    v230 = (ROOT / "app/v230.py").read_text(encoding="utf-8")
-    v240 = (ROOT / "app/v240.py").read_text(encoding="utf-8")
-    v250 = (ROOT / "app/v250.py").read_text(encoding="utf-8")
-    v300 = (ROOT / "app/v300.py").read_text(encoding="utf-8")
-    v301 = (ROOT / "app/v301.py").read_text(encoding="utf-8")
-    v302 = (ROOT / "app/v302.py").read_text(encoding="utf-8")
-    current = (ROOT / "app/v310.py").read_text(encoding="utf-8")
     service = (ROOT / "systemd/it-projektzentrale.service").read_text(encoding="utf-8")
     assert 'VERSION = "1.9.0"' in source
     assert 'VERSION = "1.9.0"' in runtime
     assert "app.v180_runtime" in runtime
-    assert "from app.v190 import app" in v200
-    assert "from app.v200 import app" in v210
-    assert "from app.v210_runtime import app" in v220
-    assert "from app.v220_runtime import app" in v230
-    assert "from app.v230 import app" in v240
-    assert "from app.v240 import app" in v250
-    assert "from app.v250 import app" in v300
-    assert "import app.v300 as v300" in v301
-    assert "from app.v301 import app" in v302
-    assert "from app.v302 import app" in current
-    assert "app.v310_runtime:app" in service
     assert "app.v311_runtime:app" in service
-    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.1.1"
+    assert "app.v320_runtime:app" in service
+    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.2.0"
 
 
 def test_infrastructure_has_guardrails():

@@ -9,8 +9,8 @@ User=it-projektzentrale
 Group=it-projektzentrale
 WorkingDirectory=/opt/it-projektzentrale
 EnvironmentFile=/etc/it-projektzentrale.conf
-# Previous runtime markers retained for upgrade-chain tests: app.v250_runtime:app app.v300_runtime:app app.v301_runtime:app app.v302_runtime:app app.v310_runtime:app
-ExecStart=/var/lib/it-projektzentrale/venv/bin/uvicorn app.v311_runtime:app --host 127.0.0.1 --port 8000 --proxy-headers --forwarded-allow-ips=127.0.0.1
+# Previous runtime markers retained for upgrade-chain tests: app.v250_runtime:app app.v300_runtime:app app.v301_runtime:app app.v302_runtime:app app.v310_runtime:app app.v311_runtime:app
+ExecStart=/var/lib/it-projektzentrale/venv/bin/uvicorn app.v320_runtime:app --host 127.0.0.1 --port 8000 --proxy-headers --forwarded-allow-ips=127.0.0.1
 Restart=on-failure
 RestartSec=3
 StartLimitIntervalSec=60
@@ -27,7 +27,7 @@ ProtectControlGroups=true
 RestrictSUIDSGID=true
 LockPersonality=true
 RestrictRealtime=true
-ReadWritePaths=/var/lib/it-projektzentrale
+ReadWritePaths=/var/lib/it-projektzentrale /srv/itpz-projects /opt/itpz-projects
 NoNewPrivileges=false
 UMask=0027
 

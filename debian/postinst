@@ -12,7 +12,7 @@ SERVICE=it-projektzentrale.service
 WORKER=it-projektzentrale-worker.service
 MONITOR=it-projektzentrale-monitor.service
 HEALTH_URL=http://127.0.0.1:8000/health
-EXPECTED_VERSION=3.1.1
+EXPECTED_VERSION=3.2.0
 
 fail() {
  echo "Fehler bei der Einrichtung: $1" >&2
@@ -24,7 +24,7 @@ fail() {
 
 repair_state_permissions() {
  install -d -m 0750 -o "$APP_USER" -g "$APP_USER" "$STATE_DIR" "$STATE_DIR/data" "$STATE_DIR/uploads" "$STATE_DIR/uploads/packages" "$STATE_DIR/uploads/plugins" "$STATE_DIR/backups" "$STATE_DIR/backups/installations" "$STATE_DIR/backups/compose" "$STATE_DIR/exports"
- install -d -m 0750 -o root -g "$APP_USER" "$STATE_DIR/plugins" "$STATE_DIR/plugins/enabled" /srv/itpz-compose
+ install -d -m 0750 -o root -g "$APP_USER" "$STATE_DIR/plugins" "$STATE_DIR/plugins/enabled" /srv/itpz-compose /srv/itpz-projects /opt/itpz-projects
  chown -R "$APP_USER:$APP_USER" "$STATE_DIR/data" "$STATE_DIR/uploads" "$STATE_DIR/backups" "$STATE_DIR/exports"
  find "$STATE_DIR/data" -type d -exec chmod 0750 {} \;
  find "$STATE_DIR/data" -type f -exec chmod 0640 {} \;
@@ -34,7 +34,7 @@ wait_for_health() {
  attempt=0
  while [ "$attempt" -lt 60 ]; do
   response=$(curl -fsS --max-time 2 "$HEALTH_URL" 2>/dev/null || true)
-  case "$response" in *'"status":"ok"'*'"version":"3.1.1"'*) return 0 ;; esac
+  case "$response" in *'"status":"ok"'*'"version":"3.2.0"'*) return 0 ;; esac
   attempt=$((attempt + 1)); sleep 1
  done
  return 1
@@ -79,6 +79,7 @@ ITPZ_MAX_UPLOAD_BYTES=268435456
 ITPZ_MARKETPLACE_MAX_PACKAGE=268435456
 ITPZ_WORKER_POLL_SECONDS=5
 ITPZ_MONITOR_INTERVAL=60
+ITPZ_PROJECT_SCAN_ROOTS=/srv/itpz-projects:/opt/itpz-projects
 EOF
  printf 'Benutzer: admin\nInitialpasswort: %s\n' "$INITIAL_PASSWORD" > /root/it-projektzentrale-initial-password
  chmod 0600 /root/it-projektzentrale-initial-password; NEW_PASSWORD=1
@@ -89,7 +90,7 @@ if [ "${#SECRET_VALUE}" -lt 32 ]; then
  printf 'ITPZ_SECRET=%s\n' "$(openssl rand -hex 32)" >> "$TMP_CONFIG"
  cat "$TMP_CONFIG" > "$CONFIG"; rm -f "$TMP_CONFIG"
 fi
-for setting in 'ITPZ_MASTER_KEY_FILE=/etc/it-projektzentrale.master.key' 'ITPZ_MARKETPLACE_MAX_PACKAGE=268435456' 'ITPZ_MONITOR_INTERVAL=60'; do key=${setting%%=*}; grep -q "^$key=" "$CONFIG" || echo "$setting" >> "$CONFIG"; done
+for setting in 'ITPZ_MASTER_KEY_FILE=/etc/it-projektzentrale.master.key' 'ITPZ_MARKETPLACE_MAX_PACKAGE=268435456' 'ITPZ_MONITOR_INTERVAL=60' 'ITPZ_PROJECT_SCAN_ROOTS=/srv/itpz-projects:/opt/itpz-projects'; do key=${setting%%=*}; grep -q "^$key=" "$CONFIG" || echo "$setting" >> "$CONFIG"; done
 chown root:root "$CONFIG"; chmod 0600 "$CONFIG"
 
 cat > /etc/sudoers.d/it-projektzentrale <<'EOF'

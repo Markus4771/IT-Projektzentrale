@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Projekt-Framework</h1>
+<p>Standardisierte Projekte über <code>projekt.yaml</code> erkennen, prüfen und in den Installationskatalog übernehmen.</p>
+{% if message %}<div class="message success">{{ message }}</div>{% endif %}
+{% if error %}<div class="message error">{{ error }}</div>{% endif %}
+
+<section class="card-grid">
+  <article class="card"><h2>{{ manifests|length }}</h2><p>erkannte Manifeste</p></article>
+  <article class="card"><h2>itpz/v1</h2><p>unterstütztes Schema</p></article>
+  <article class="card"><h2>{{ scan_roots|length }}</h2><p>Suchverzeichnisse</p></article>
+</section>
+
+{% if current_user.role == 'admin' %}
+<section class="card">
+  <h2>Automatisch erkennen</h2>
+  <p>Durchsucht ausschließlich die konfigurierten Wurzelverzeichnisse nach <code>&lt;projekt&gt;/projekt.yaml</code>.</p>
+  <p><code>{{ scan_roots|join(':') }}</code></p>
+  <form method="post" action="/project-framework/discover"><button type="submit">Projekte erkennen</button></form>
+</section>
+<section class="card">
+  <h2>Manifest importieren</h2>
+  <form method="post" action="/project-framework/import">
+    <label for="manifest_yaml">projekt.yaml</label>
+    <textarea id="manifest_yaml" name="manifest_yaml" rows="20" required placeholder="schema: itpz/v1&#10;id: beispiel-projekt&#10;name: Beispielprojekt&#10;version: 1.0.0&#10;type: deb"></textarea>
+    <button type="submit">Prüfen und importieren</button>
+  </form>
+</section>
+{% endif %}
+
+<section class="card">
+<h2>Erkannte Projekte</h2>
+<div class="table-wrap"><table><thead><tr><th>Projekt</th><th>Version</th><th>Typ/Kanal</th><th>Quelle</th><th>Abhängigkeiten</th><th>Berechtigungen</th><th>Status</th><th>Aktionen</th></tr></thead><tbody>
+{% for item in manifests %}
+<tr>
+<td><strong>{{ item.name }}</strong><br><code>{{ item.project_key }}</code><br><small>{{ item.description }}</small></td>
+<td>{{ item.version }}</td><td>{{ item.project_type }} / {{ item.channel }}</td>
+<td>{{ item.provider }}{% if item.repository %}<br><code>{{ item.repository }}</code>{% endif %}</td>
+<td>{% if item.dependencies %}{% for dep in item.dependencies %}<code>{{ dep.dependency_key }}{% if dep.version_constraint %} {{ dep.version_constraint }}{% endif %}</code>{% if dep.optional %} optional{% endif %}<br>{% endfor %}{% else %}–{% endif %}{% if item.missing_dependencies %}<span class="error">Fehlt: {{ item.missing_dependencies|join(', ') }}</span>{% endif %}</td>
+<td>{% if item.permissions %}{{ item.permissions|join(', ') }}{% else %}–{% endif %}</td>
+<td>{% if item.valid and item.enabled %}aktiv{% elif not item.valid %}ungültig{% else %}deaktiviert{% endif %}<br><small>SHA256 {{ item.manifest_sha256[:12] }}…</small></td>
+<td>{% if current_user.role == 'admin' %}<form method="post" action="/project-framework/{{ item.id }}/apply"><button {% if item.missing_dependencies or not item.enabled %}disabled{% endif %}>In Katalog übernehmen</button></form><form method="post" action="/project-framework/{{ item.id }}/toggle"><button class="secondary">{% if item.enabled %}Deaktivieren{% else %}Aktivieren{% endif %}</button></form>{% endif %}</td>
+</tr>
+{% else %}<tr><td colspan="8">Noch keine Projektmanifeste gefunden.</td></tr>{% endfor %}
+</tbody></table></div>
+</section>
+
+<section class="card"><h2>Erkennungsläufe</h2><div class="table-wrap"><table><thead><tr><th>Zeit</th><th>Quelle</th><th>Geprüft</th><th>Importiert</th><th>Abgelehnt</th><th>Benutzer</th></tr></thead><tbody>{% for run in runs %}<tr><td>{{ run.created_at }}</td><td><code>{{ run.source }}</code></td><td>{{ run.scanned }}</td><td>{{ run.imported }}</td><td>{{ run.rejected }}</td><td>{{ run.created_by_name or 'System' }}</td></tr>{% else %}<tr><td colspan="6">Noch kein Erkennungslauf.</td></tr>{% endfor %}</tbody></table></div></section>
+{% endblock %}
