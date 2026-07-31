@@ -1,0 +1,60 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+import json, re, shutil, subprocess, sys, tarfile, time
+from pathlib import Path
+
+BASE=Path('/srv/itpz-compose')
+BACKUPS=Path('/var/lib/it-projektzentrale/backups/compose')
+SLUG=re.compile(r'^[a-z0-9][a-z0-9-]{1,62}$')
+ACTIONS={'status','up','down','restart','pull','update','logs','backup','rollback'}
+
+def project(slug:str)->tuple[Path,Path]:
+ if not SLUG.fullmatch(slug): raise RuntimeError('Ungültige Projekt-ID')
+ root=(BASE/slug).resolve(); root.relative_to(BASE.resolve())
+ compose=root/'compose.yaml'
+ if not compose.is_file():
+  compose=root/'docker-compose.yml'
+ if not compose.is_file(): raise RuntimeError('Compose-Datei fehlt')
+ return root,compose
+
+def run(args:list[str],cwd:Path,timeout:int=1800):
+ return subprocess.run(args,cwd=cwd,text=True,capture_output=True,timeout=timeout,check=False)
+
+def main()->int:
+ if len(sys.argv)<3 or sys.argv[1] not in ACTIONS: raise RuntimeError('Aufruf nicht erlaubt')
+ action,slug=sys.argv[1],sys.argv[2]; root,compose=project(slug)
+ cmd=['/usr/bin/docker','compose','-f',str(compose)]
+ if action=='status': args=cmd+['ps','--format','json']
+ elif action=='up': args=cmd+['up','-d','--remove-orphans']
+ elif action=='down': args=cmd+['down']
+ elif action=='restart': args=cmd+['restart']
+ elif action=='pull': args=cmd+['pull']
+ elif action=='update':
+  a=run(cmd+['pull'],root)
+  if a.returncode: print(a.stdout); print(a.stderr,file=sys.stderr); return a.returncode
+  args=cmd+['up','-d','--remove-orphans']
+ elif action=='logs': args=cmd+['logs','--no-color','--tail','300']
+ elif action=='backup':
+  BACKUPS.mkdir(parents=True,exist_ok=True); target=BACKUPS/f'{slug}-{int(time.time())}.tar.gz'
+  with tarfile.open(target,'w:gz') as archive: archive.add(root,arcname=slug,recursive=True)
+  print(json.dumps({'backup':str(target)})); return 0
+ elif action=='rollback':
+  if len(sys.argv)!=4: raise RuntimeError('Backup-Datei fehlt')
+  backup=(BACKUPS/Path(sys.argv[3]).name).resolve(); backup.relative_to(BACKUPS.resolve())
+  if not backup.is_file(): raise RuntimeError('Backup fehlt')
+  tmp=BASE/f'.restore-{slug}-{int(time.time())}'
+  with tarfile.open(backup,'r:gz') as archive:
+   for member in archive.getmembers():
+    if member.name.startswith('/') or '..' in Path(member.name).parts or member.issym() or member.islnk(): raise RuntimeError('Unsicheres Backup')
+   archive.extractall(tmp)
+  restored=tmp/slug
+  if root.exists(): shutil.rmtree(root)
+  shutil.move(str(restored),str(root)); shutil.rmtree(tmp,ignore_errors=True)
+  args=cmd+['up','-d','--remove-orphans']
+ result=run(args,root)
+ sys.stdout.write(result.stdout[-200000:]); sys.stderr.write(result.stderr[-200000:])
+ return result.returncode
+
+if __name__=='__main__':
+ try: raise SystemExit(main())
+ except Exception as exc: print(str(exc),file=sys.stderr); raise SystemExit(2)
