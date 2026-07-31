@@ -6,7 +6,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_release_versions_are_consistent() -> None:
     version = (ROOT / "version.txt").read_text(encoding="utf-8").strip()
-    module = (ROOT / "app" / "v110.py").read_text(encoding="utf-8")
+    modules = sorted((ROOT / "app").glob("v*.py"))
+    module = modules[-1].read_text(encoding="utf-8") if modules else (ROOT / "app/main.py").read_text(encoding="utf-8")
     postinst = (ROOT / "debian" / "postinst").read_text(encoding="utf-8")
 
     assert f'VERSION = "{version}"' in module
