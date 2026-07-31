@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Remote-Projektquellen</h1>
+<p>GitHub- und Gitea-Repositories synchronisieren, Releases erkennen und geprüfte Debian-Pakete installieren.</p>
+{% if message %}<div class="message">{{ message }}</div>{% endif %}
+{% if error %}<div class="error">{{ error }}</div>{% endif %}
+{% if current_user.role == 'admin' %}
+<section class="card">
+<h2>Quelle hinzufügen</h2>
+<form method="post" action="/project-framework/remotes" class="form-grid">
+<label>Name<input name="name" required maxlength="120"></label>
+<label>Anbieter<select name="provider"><option value="github">GitHub</option><option value="gitea">Gitea</option></select></label>
+<label>API-Basisadresse<input name="base_url" placeholder="https://api.github.com"></label>
+<label>Repository<input name="repository" required placeholder="Eigentümer/Repository"></label>
+<label>Branch<input name="branch" value="main"></label>
+<label>Manifestpfad<input name="manifest_path" value="projekt.yaml"></label>
+<label>Secret<select name="secret_name"><option value="">Ohne Token</option>{% for name in secret_names %}<option value="{{ name }}">{{ name }}</option>{% endfor %}</select></label>
+<button type="submit">Quelle anlegen</button>
+</form>
+</section>
+{% endif %}
+<section class="card"><h2>Quellen</h2>
+<table><thead><tr><th>Name</th><th>Anbieter</th><th>Repository</th><th>Status</th><th>Letzte Synchronisation</th><th>Aktion</th></tr></thead><tbody>
+{% for source in sources %}<tr><td>{{ source.name }}</td><td>{{ source.provider }}</td><td>{{ source.repository }}</td><td>{{ source.last_status }}{% if source.last_error %}<br><small>{{ source.last_error }}</small>{% endif %}</td><td>{{ source.last_synced_at or '–' }}</td><td>{% if current_user.role == 'admin' %}<form method="post" action="/project-framework/remotes/{{ source.id }}/sync"><button>Synchronisieren</button></form>{% endif %}</td></tr>{% else %}<tr><td colspan="6">Noch keine Remote-Quellen.</td></tr>{% endfor %}
+</tbody></table></section>
+<section class="card"><h2>Erkannte Release-Pakete</h2>
+<table><thead><tr><th>Projekt</th><th>Version</th><th>Datei</th><th>Prüfsumme</th><th>Status</th><th>Aktionen</th></tr></thead><tbody>
+{% for asset in assets %}<tr><td>{{ asset.project_key or asset.source_name }}</td><td>{{ asset.release_version }}</td><td>{{ asset.asset_name }}</td><td>{% if asset.expected_sha256 %}vorhanden{% else %}fehlt{% endif %}</td><td>{{ asset.state }}{% if asset.error %}<br><small>{{ asset.error }}</small>{% endif %}</td><td>{% if current_user.role == 'admin' %}{% if asset.state != 'downloaded' %}<form method="post" action="/project-framework/assets/{{ asset.id }}/download"><button>Prüfen & laden</button></form>{% else %}<form method="post" action="/project-framework/assets/{{ asset.id }}/install"><button>Installieren</button></form>{% endif %}{% endif %}</td></tr>{% else %}<tr><td colspan="6">Keine Release-Pakete erkannt.</td></tr>{% endfor %}
+</tbody></table></section>
+<section class="card"><h2>Synchronisationsprotokoll</h2><table><thead><tr><th>Zeit</th><th>Quelle</th><th>Status</th><th>Release</th><th>Fehler</th></tr></thead><tbody>{% for run in runs %}<tr><td>{{ run.started_at }}</td><td>{{ run.source_name }}</td><td>{{ run.state }}</td><td>{{ run.release_version or '–' }}</td><td>{{ run.error or '–' }}</td></tr>{% else %}<tr><td colspan="5">Noch keine Läufe.</td></tr>{% endfor %}</tbody></table></section>
+{% endblock %}

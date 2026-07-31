@@ -12,7 +12,7 @@ SERVICE=it-projektzentrale.service
 WORKER=it-projektzentrale-worker.service
 MONITOR=it-projektzentrale-monitor.service
 HEALTH_URL=http://127.0.0.1:8000/health
-EXPECTED_VERSION=3.2.0
+EXPECTED_VERSION=3.3.0
 
 fail() {
  echo "Fehler bei der Einrichtung: $1" >&2
@@ -34,7 +34,7 @@ wait_for_health() {
  attempt=0
  while [ "$attempt" -lt 60 ]; do
   response=$(curl -fsS --max-time 2 "$HEALTH_URL" 2>/dev/null || true)
-  case "$response" in *'"status":"ok"'*'"version":"3.2.0"'*) return 0 ;; esac
+  case "$response" in *'"status":"ok"'*'"version":"3.3.0"'*) return 0 ;; esac
   attempt=$((attempt + 1)); sleep 1
  done
  return 1
