@@ -12,8 +12,9 @@ def test_marketplace_release_is_wired():
     assert "from app.v240 import app" in source
     assert "app.v311_runtime:app" in service
     assert "app.v320_runtime:app" in service
+    assert "app.v330_runtime:app" in service
     assert '"version":"2.5.0"' in postinst
-    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.2.0"
+    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.3.0"
     assert "app.version = VERSION" in runtime
 
 
