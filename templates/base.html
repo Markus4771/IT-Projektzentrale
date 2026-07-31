@@ -14,7 +14,7 @@
     {% if logged_in %}
       <a href="/">Dashboard</a><a href="/projects">Projekte</a><a href="/installation">Installation</a>
       <a href="/backups">Backups</a><a href="/system">System</a>
-      {% if current_user.role == 'admin' %}<a href="/admin">Administration</a>{% endif %}
+      {% if current_user.role == 'admin' %}<a href="/admin">Administration</a><a href="/admin/users">Benutzer</a>{% endif %}
       <a href="/account/password">Passwort</a>
       <form method="post" action="/admin/logout" class="nav-form"><button class="link-button">Abmelden</button></form>
     {% else %}
