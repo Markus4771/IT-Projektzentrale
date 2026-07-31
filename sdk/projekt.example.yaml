@@ -1,0 +1,23 @@
+schema: itpz/v1
+id: mein-projekt
+name: Mein Projekt
+version: 1.0.0
+type: deb
+channel: stable
+category: Allgemein
+description: Kurze Beschreibung des Projekts.
+homepage: https://example.org
+package:
+  name: mein-projekt
+  asset: mein-projekt_*_all.deb
+  sha256: HIER_SHA256_EINTRAGEN
+source:
+  provider: github
+  repository: Eigentümer/Repository
+install:
+  service: mein-projekt.service
+health:
+  type: http
+  url: http://127.0.0.1:8080/health
+permissions:
+  - network
