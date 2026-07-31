@@ -10,17 +10,44 @@ NGINX_AVAILABLE=/etc/nginx/sites-available/it-projektzentrale.conf
 NGINX_ENABLED=/etc/nginx/sites-enabled/it-projektzentrale.conf
 SERVICE=it-projektzentrale.service
 CONFIG=/etc/it-projektzentrale.conf
+HEALTH_URL=http://127.0.0.1:8000/health
+
+repair_state_permissions() {
+    install -d -m 0750 -o "$APP_USER" -g "$APP_USER" \
+        "$STATE_DIR" "$STATE_DIR/data" "$STATE_DIR/uploads" "$STATE_DIR/uploads/packages" \
+        "$STATE_DIR/backups" "$STATE_DIR/exports"
+    chown -R "$APP_USER:$APP_USER" "$STATE_DIR"
+    chmod 0750 "$STATE_DIR" "$STATE_DIR/data" "$STATE_DIR/uploads" \
+        "$STATE_DIR/uploads/packages" "$STATE_DIR/backups" "$STATE_DIR/exports"
+    find "$STATE_DIR/data" -type d -exec chmod 0750 {} \;
+    find "$STATE_DIR/data" -type f -exec chmod 0640 {} \;
+}
+
+verify_state_writable() {
+    runuser -u "$APP_USER" -- sh -c \
+        'test -w "$1" && touch "$1/.write-test" && rm -f "$1/.write-test"' sh "$STATE_DIR/data"
+}
+
+wait_for_health() {
+    attempt=0
+    while [ "$attempt" -lt 20 ]; do
+        if curl -fsS --max-time 2 "$HEALTH_URL" >/dev/null 2>&1; then
+            return 0
+        fi
+        attempt=$((attempt + 1))
+        sleep 1
+    done
+    return 1
+}
 
 if ! getent passwd "$APP_USER" >/dev/null 2>&1; then
     adduser --system --group --home "$STATE_DIR" --no-create-home "$APP_USER"
 fi
 
-install -d -m 0750 -o "$APP_USER" -g "$APP_USER" \
-    "$STATE_DIR" "$STATE_DIR/data" "$STATE_DIR/uploads" "$STATE_DIR/uploads/packages" \
-    "$STATE_DIR/backups" "$STATE_DIR/exports"
+repair_state_permissions
 install -d -m 0700 -o root -g root "$HELPER_STATE_DIR"
 
-# Bestandsdaten aus Beta 1 übernehmen.
+# Bestandsdaten aus früheren Versionen übernehmen.
 for directory in data uploads backups exports; do
     if [ -d "$APP_DIR/$directory" ]; then
         cp -a "$APP_DIR/$directory/." "$STATE_DIR/$directory/"
@@ -29,15 +56,16 @@ done
 
 chown -R root:root "$APP_DIR"
 chmod -R u=rwX,go=rX "$APP_DIR"
-chown -R "$APP_USER:$APP_USER" "$STATE_DIR"
-chmod 0750 "$STATE_DIR" "$STATE_DIR/data" "$STATE_DIR/uploads" "$STATE_DIR/uploads/packages" "$STATE_DIR/backups" "$STATE_DIR/exports"
+repair_state_permissions
 
 if [ ! -x "$VENV_DIR/bin/python" ]; then
     python3 -m venv "$VENV_DIR"
-    chown -R "$APP_USER:$APP_USER" "$VENV_DIR"
 fi
+chown -R "$APP_USER:$APP_USER" "$VENV_DIR"
 runuser -u "$APP_USER" -- "$VENV_DIR/bin/pip" install --disable-pip-version-check --upgrade pip
 runuser -u "$APP_USER" -- "$VENV_DIR/bin/pip" install --disable-pip-version-check -r "$APP_DIR/requirements.txt"
+repair_state_permissions
+verify_state_writable
 
 NEW_PASSWORD=0
 NEEDS_CONFIG=0
@@ -107,10 +135,17 @@ systemctl enable "$SERVICE" nginx.service >/dev/null 2>&1 || true
 systemctl restart "$SERVICE"
 systemctl restart nginx.service
 
+if ! wait_for_health; then
+    echo "Fehler: IT-Projektzentrale wurde installiert, der Health-Check ist jedoch fehlgeschlagen." >&2
+    systemctl status "$SERVICE" --no-pager -l >&2 || true
+    journalctl -u "$SERVICE" -n 40 --no-pager >&2 || true
+    exit 1
+fi
+
 IP_ADDR=$(hostname -I 2>/dev/null | awk '{print $1}')
 [ -n "$IP_ADDR" ] || IP_ADDR="SERVER-IP"
 echo ""
-echo "IT-Projektzentrale 1.0.0 Beta 2 wurde eingerichtet."
+echo "IT-Projektzentrale 1.1.1 wurde erfolgreich eingerichtet."
 echo "Aufruf: http://$IP_ADDR/"
 if [ "$NEW_PASSWORD" -eq 1 ]; then
     echo "Initialzugang: /root/it-projektzentrale-initial-password"
