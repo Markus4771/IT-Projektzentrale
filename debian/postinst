@@ -1,6 +1,5 @@
 #!/bin/sh
 set -eu
-
 APP_USER=it-projektzentrale
 APP_DIR=/opt/it-projektzentrale
 STATE_DIR=/var/lib/it-projektzentrale
@@ -13,24 +12,16 @@ WORKER=it-projektzentrale-worker.service
 MONITOR=it-projektzentrale-monitor.service
 CONFIG=/etc/it-projektzentrale.conf
 HEALTH_URL=http://127.0.0.1:8000/health
-
 repair_state_permissions() {
-    install -d -m 0750 -o "$APP_USER" -g "$APP_USER" "$STATE_DIR" "$STATE_DIR/data" "$STATE_DIR/uploads" "$STATE_DIR/uploads/packages" "$STATE_DIR/backups" "$STATE_DIR/backups/installations" "$STATE_DIR/backups/compose" "$STATE_DIR/exports"
-    install -d -m 0750 -o root -g "$APP_USER" /srv/itpz-compose
-    chown -R "$APP_USER:$APP_USER" "$STATE_DIR"
-    chmod 0750 "$STATE_DIR" "$STATE_DIR/data" "$STATE_DIR/uploads" "$STATE_DIR/uploads/packages" "$STATE_DIR/backups" "$STATE_DIR/backups/installations" "$STATE_DIR/backups/compose" "$STATE_DIR/exports"
-    find "$STATE_DIR/data" -type d -exec chmod 0750 {} \;
-    find "$STATE_DIR/data" -type f -exec chmod 0640 {} \;
+ install -d -m 0750 -o "$APP_USER" -g "$APP_USER" "$STATE_DIR" "$STATE_DIR/data" "$STATE_DIR/uploads" "$STATE_DIR/uploads/packages" "$STATE_DIR/uploads/plugins" "$STATE_DIR/backups" "$STATE_DIR/backups/installations" "$STATE_DIR/backups/compose" "$STATE_DIR/exports"
+ install -d -m 0750 -o root -g "$APP_USER" "$STATE_DIR/plugins" "$STATE_DIR/plugins/enabled" /srv/itpz-compose
+ chown -R "$APP_USER:$APP_USER" "$STATE_DIR/data" "$STATE_DIR/uploads" "$STATE_DIR/backups" "$STATE_DIR/exports"
+ chmod 0750 "$STATE_DIR" "$STATE_DIR/data" "$STATE_DIR/uploads" "$STATE_DIR/uploads/packages" "$STATE_DIR/uploads/plugins" "$STATE_DIR/backups" "$STATE_DIR/backups/installations" "$STATE_DIR/backups/compose" "$STATE_DIR/exports"
+ find "$STATE_DIR/data" -type d -exec chmod 0750 {} \;
+ find "$STATE_DIR/data" -type f -exec chmod 0640 {} \;
 }
 verify_state_writable() { runuser -u "$APP_USER" -- sh -c 'test -w "$1" && touch "$1/.write-test" && rm -f "$1/.write-test"' sh "$STATE_DIR/data"; }
-wait_for_health() {
-    attempt=0
-    while [ "$attempt" -lt 20 ]; do
-        if response=$(curl -fsS --max-time 2 "$HEALTH_URL" 2>/dev/null); then case "$response" in *'"status":"ok"'*'"version":"2.4.0"'*) return 0 ;; esac; fi
-        attempt=$((attempt + 1)); sleep 1
-    done
-    return 1
-}
+wait_for_health() { attempt=0; while [ "$attempt" -lt 20 ]; do if response=$(curl -fsS --max-time 2 "$HEALTH_URL" 2>/dev/null); then case "$response" in *'"status":"ok"'*'"version":"2.5.0"'*) return 0 ;; esac; fi; attempt=$((attempt + 1)); sleep 1; done; return 1; }
 if ! getent passwd "$APP_USER" >/dev/null 2>&1; then adduser --system --group --home "$STATE_DIR" --no-create-home "$APP_USER"; fi
 repair_state_permissions
 install -d -m 0700 -o root -g root "$HELPER_STATE_DIR"
@@ -45,17 +36,17 @@ NEW_PASSWORD=0; NEEDS_CONFIG=0
 if [ ! -f "$CONFIG" ]; then NEEDS_CONFIG=1
 elif ! grep -Eq '^ITPZ_SECRET=.{32,}$' "$CONFIG" || ! grep -Eq '^ITPZ_ADMIN_PASSWORD=.{12,}$' "$CONFIG" || grep -qx 'ITPZ_ADMIN_PASSWORD=admin' "$CONFIG"; then NEEDS_CONFIG=1; fi
 if [ "$NEEDS_CONFIG" -eq 1 ]; then
-    HAS_USERS=$(python3 - "$STATE_DIR/data/projektzentrale.db" <<'PY_USERS'
+ HAS_USERS=$(python3 - "$STATE_DIR/data/projektzentrale.db" <<'PY_USERS'
 import sqlite3,sys
 try:
-    with sqlite3.connect(sys.argv[1]) as c:
-        e=c.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='users'").fetchone(); n=c.execute("SELECT COUNT(*) FROM users").fetchone()[0] if e else 0
+ with sqlite3.connect(sys.argv[1]) as c:
+  e=c.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='users'").fetchone(); n=c.execute("SELECT COUNT(*) FROM users").fetchone()[0] if e else 0
 except sqlite3.Error: n=0
 print(1 if n else 0)
 PY_USERS
 )
-    INITIAL_PASSWORD=$(openssl rand -hex 16); umask 077
-    cat > "$CONFIG" <<EOF_CONFIG
+ INITIAL_PASSWORD=$(openssl rand -hex 16); umask 077
+ cat > "$CONFIG" <<EOF_CONFIG
 ITPZ_SECRET=$(openssl rand -hex 32)
 ITPZ_ADMIN_USER=admin
 ITPZ_ADMIN_PASSWORD=$INITIAL_PASSWORD
@@ -65,13 +56,14 @@ ITPZ_MAX_UPLOAD_BYTES=268435456
 ITPZ_WORKER_POLL_SECONDS=5
 ITPZ_MONITOR_INTERVAL=60
 EOF_CONFIG
-    if [ "$HAS_USERS" -eq 0 ]; then printf 'Benutzer: admin\nInitialpasswort: %s\n' "$INITIAL_PASSWORD" > /root/it-projektzentrale-initial-password; chmod 0600 /root/it-projektzentrale-initial-password; NEW_PASSWORD=1; fi
+ if [ "$HAS_USERS" -eq 0 ]; then printf 'Benutzer: admin\nInitialpasswort: %s\n' "$INITIAL_PASSWORD" > /root/it-projektzentrale-initial-password; chmod 0600 /root/it-projektzentrale-initial-password; NEW_PASSWORD=1; fi
 fi
 if ! grep -q '^ITPZ_MONITOR_INTERVAL=' "$CONFIG"; then echo 'ITPZ_MONITOR_INTERVAL=60' >> "$CONFIG"; fi
 chmod 0600 "$CONFIG"
 cat > /etc/sudoers.d/it-projektzentrale <<'EOF_SUDOERS'
 it-projektzentrale ALL=(root) NOPASSWD: /usr/lib/it-projektzentrale/itpz-helper *
 it-projektzentrale ALL=(root) NOPASSWD: /usr/lib/it-projektzentrale/itpz-compose-helper *
+it-projektzentrale ALL=(root) NOPASSWD: /usr/lib/it-projektzentrale/itpz-plugin-helper *
 EOF_SUDOERS
 chmod 0440 /etc/sudoers.d/it-projektzentrale
 if command -v visudo >/dev/null 2>&1; then visudo -cf /etc/sudoers.d/it-projektzentrale >/dev/null; fi
@@ -81,14 +73,8 @@ systemctl daemon-reload
 if ! nginx -t; then echo "Fehler: Die Nginx-Konfiguration ist ungültig." >&2; exit 1; fi
 systemctl enable "$SERVICE" "$WORKER" "$MONITOR" nginx.service >/dev/null 2>&1 || true
 systemctl restart "$SERVICE"; systemctl restart "$WORKER"; systemctl restart "$MONITOR"; systemctl restart nginx.service
-if ! wait_for_health; then
-    echo "Fehler: Der Health-Check meldet nicht die erwartete Version 2.4.0." >&2
-    curl -sS "$HEALTH_URL" >&2 || true; echo >&2
-    systemctl status "$SERVICE" "$WORKER" "$MONITOR" --no-pager -l >&2 || true
-    journalctl -u "$SERVICE" -u "$WORKER" -u "$MONITOR" -n 60 --no-pager >&2 || true
-    exit 1
-fi
+if ! wait_for_health; then echo "Fehler: Der Health-Check meldet nicht die erwartete Version 2.5.0." >&2; curl -sS "$HEALTH_URL" >&2 || true; echo >&2; systemctl status "$SERVICE" "$WORKER" "$MONITOR" --no-pager -l >&2 || true; journalctl -u "$SERVICE" -u "$WORKER" -u "$MONITOR" -n 60 --no-pager >&2 || true; exit 1; fi
 IP_ADDR=$(hostname -I 2>/dev/null | awk '{print $1}'); [ -n "$IP_ADDR" ] || IP_ADDR="SERVER-IP"
-echo ""; echo "IT-Projektzentrale 2.4.0 wurde erfolgreich eingerichtet."; echo "Aufruf: http://$IP_ADDR/"
+echo ""; echo "IT-Projektzentrale 2.5.0 wurde erfolgreich eingerichtet."; echo "Aufruf: http://$IP_ADDR/"
 if [ "$NEW_PASSWORD" -eq 1 ]; then echo "Initialzugang: /root/it-projektzentrale-initial-password"; echo "Beim ersten Login muss das Passwort geändert werden."; fi
 exit 0
