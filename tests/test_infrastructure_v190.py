@@ -12,7 +12,8 @@ def test_v190_release_wiring():
     assert "app.v180_runtime" in runtime
     assert "app.v311_runtime:app" in service
     assert "app.v320_runtime:app" in service
-    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.2.0"
+    assert "app.v330_runtime:app" in service
+    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.3.0"
 
 
 def test_infrastructure_has_guardrails():
