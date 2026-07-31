@@ -8,7 +8,8 @@ def test_user_management_module_is_wired_into_current_release():
     assert "ROLES =" in user_module
     assert "app.v311_runtime:app" in service
     assert "app.v320_runtime:app" in service
-    assert (root / "version.txt").read_text(encoding="utf-8").strip() == "3.2.0"
+    assert "app.v330_runtime:app" in service
+    assert (root / "version.txt").read_text(encoding="utf-8").strip() == "3.3.0"
 
 
 def test_user_management_contains_safety_guards():
@@ -23,5 +24,5 @@ def test_user_management_contains_safety_guards():
 def test_navigation_links_platform_areas():
     root = Path(__file__).resolve().parents[1]
     template = (root / "templates/base.html").read_text(encoding="utf-8")
-    for target in ("/admin/users", "/marketplace", "/app-store", "/plugins", "/servers", "/monitoring", "/compose", "/infrastructure", "/maintenance", "/installation", "/security", "/project-framework"):
+    for target in ("/admin/users", "/marketplace", "/app-store", "/plugins", "/servers", "/monitoring", "/compose", "/infrastructure", "/maintenance", "/installation", "/security", "/project-framework", "/project-framework/remotes"):
         assert f'href="{target}"' in template
