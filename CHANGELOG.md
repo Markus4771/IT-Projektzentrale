@@ -2,6 +2,31 @@
 
 ## [Unveröffentlicht]
 
+## [3.2.0] – 2026-07-31
+
+### Hinzugefügt
+
+- standardisiertes Projektmanifest `projekt.yaml` mit Schema `itpz/v1`
+- automatische Erkennung lokaler Projekte in begrenzten Suchverzeichnissen
+- Web-Import, Erkennungsprotokolle und Manifest-API
+- Abhängigkeiten, optionale Abhängigkeiten, Release-Kanäle und Berechtigungen
+- kontrollierte Übernahme validierter Manifeste in Projekt- und Installationskatalog
+- Dokumentation des Manifestformats
+
+### Sicherheit
+
+- YAML-Verarbeitung ausschließlich mit `safe_load`
+- Größenlimit, feste Feldlisten und strenge Validierung von IDs, Versionen, Paketen und Quellen
+- feste Berechtigungs- und Providerlisten
+- keine Ausführung von Befehlen aus Manifesten
+- schreibende Funktionen ausschließlich für Administratoren
+
+### Tests
+
+- echte Runtime- und Manifesttests
+- Regressionstest gegen das bestehende Projektdatenbankschema
+- vollständiger Debian-Paket- und Upgradepfad
+
 ## [1.2.0] – 2026-07-31
 
 ### Hinzugefügt
