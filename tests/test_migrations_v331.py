@@ -52,10 +52,11 @@ def test_v331_repairs_legacy_columns(tmp_path, monkeypatch):
     assert module.migrate_schema_v331() == []
 
 
-def test_release_wiring_uses_v331_runtime():
+def test_release_wiring_keeps_v331_and_uses_v340_runtime():
     root = Path(__file__).resolve().parents[1]
     service = (root / "systemd/it-projektzentrale.service").read_text(encoding="utf-8")
     postinst = (root / "debian/postinst").read_text(encoding="utf-8")
     assert "app.v331_runtime:app" in service
-    assert "EXPECTED_VERSION=3.3.1" in postinst
-    assert (root / "version.txt").read_text(encoding="utf-8").strip() == "3.3.1"
+    assert "app.v340_runtime:app" in service
+    assert "EXPECTED_VERSION=3.4.0" in postinst
+    assert (root / "version.txt").read_text(encoding="utf-8").strip() == "3.4.0"
