@@ -2,19 +2,19 @@ from __future__ import annotations
 
 """Version 3.3.1: idempotente Datenbankmigrationen für ältere Installationen."""
 
+import os
 import sqlite3
+from pathlib import Path
 from typing import Iterable
 
 import app.main as base
-from app.main import audit, db
+from app.main import audit
 from app.v330 import app
 
 VERSION = "3.3.1"
 base.VERSION = VERSION
 app.version = VERSION
 
-
-# Spalten, die von den aktuellen Webrouten und Workern vorausgesetzt werden.
 _REQUIRED_COLUMNS: dict[str, tuple[tuple[str, str], ...]] = {
     "package_sources": (
         ("provider", "TEXT NOT NULL DEFAULT ''"),
@@ -48,6 +48,22 @@ _REQUIRED_COLUMNS: dict[str, tuple[tuple[str, str], ...]] = {
 }
 
 
+def _migration_db() -> sqlite3.Connection:
+    """Öffnet bewusst den aktuell konfigurierten State-Pfad.
+
+    Dadurch funktionieren Upgrades und isolierte Regressionstests auch dann,
+    wenn app.main bereits zuvor mit einem anderen ITPZ_STATE_DIR importiert wurde.
+    """
+    state = Path(os.getenv("ITPZ_STATE_DIR", "/var/lib/it-projektzentrale"))
+    database = state / "data" / "projektzentrale.db"
+    database.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(database, timeout=30)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys=ON")
+    conn.execute("PRAGMA busy_timeout=30000")
+    return conn
+
+
 def _table_exists(conn: sqlite3.Connection, table: str) -> bool:
     return conn.execute(
         "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table,)
@@ -75,7 +91,7 @@ def _add_missing_columns(
 
 def migrate_schema_v331() -> list[str]:
     """Repariert ältere Schemas transaktional und kann beliebig oft laufen."""
-    with db() as conn:
+    with _migration_db() as conn:
         conn.execute("""CREATE TABLE IF NOT EXISTS schema_migrations (
             migration_id TEXT PRIMARY KEY,
             applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -91,7 +107,6 @@ def migrate_schema_v331() -> list[str]:
                applied_at=CURRENT_TIMESTAMP,details=excluded.details""",
             (",".join(added) if added else "schema already complete",),
         )
-        # Bestehende Alt-Datensätze auf sinnvolle Werte normalisieren.
         if _table_exists(conn, "installation_jobs"):
             conn.execute("UPDATE installation_jobs SET phase=COALESCE(NULLIF(phase,''),state,'queued')")
             conn.execute("UPDATE installation_jobs SET progress=CASE WHEN progress<0 THEN 0 WHEN progress>100 THEN 100 ELSE progress END")
