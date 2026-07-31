@@ -1,0 +1,30 @@
+[Unit]
+Description=IT-Projektzentrale Installations-Worker
+After=network-online.target it-projektzentrale.service
+Wants=network-online.target
+Requires=it-projektzentrale.service
+
+[Service]
+Type=simple
+User=it-projektzentrale
+Group=it-projektzentrale
+EnvironmentFile=/etc/it-projektzentrale.conf
+ExecStart=/usr/lib/it-projektzentrale/itpz-install-worker
+Restart=on-failure
+RestartSec=5
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictRealtime=true
+ReadWritePaths=/var/lib/it-projektzentrale
+NoNewPrivileges=false
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target
