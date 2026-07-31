@@ -1,23 +1,17 @@
 {% extends 'base.html' %}{% block content %}
-<h1>Installation</h1>
-<p>Debian-Pakete können manuell hochgeladen oder aus GitHub- und Gitea-Releases abgerufen werden.</p>
-{% if message %}<div class="notice success">{{ message }}</div>{% endif %}
-{% if error %}<div class="notice error-box">{{ error }}</div>{% endif %}
-<section class="grid">
-{% for p in projects %}
-<article class="card">
-<h2>{{ p.name }}</h2>
-<p>Installiert: <b>{{ p.installed_version or 'Nein' }}</b></p>
-<p>Verfügbar: <b>{{ p.latest_version or 'Kein Paket' }}</b></p>
-{% if p.latest_source %}<p>Quelle des Pakets: {{ p.latest_source|upper }}</p>{% endif %}
-{% if p.source_provider %}<p>Paketquelle: <b>{{ p.source_provider|upper }}</b><br><small>{{ p.source_repository }}</small></p>{% endif %}
-{% if p.source_error %}<p class="error">Letzter Abruf: {{ p.source_error }}</p>{% endif %}
-{% if logged_in and p.source_provider %}<form method="post" action="/installation/{{ p.id }}/refresh"><button class="secondary">Neuestes Release abrufen</button></form>{% endif %}
-{% if p.latest_file %}
-<a class="button secondary" href="/packages/{{ p.latest_file }}">DEB herunterladen</a>
-{% if logged_in %}<form method="post" action="/installation/{{ p.id }}/install"><button>Installieren / aktualisieren</button></form>{% endif %}
-{% endif %}
-</article>
-{% endfor %}
+<section class="hero install-hero"><h1>Installationszentrum</h1><p class="lead">Projekte aus Katalogen, GitHub, Gitea oder lokalen Debian-Paketen installieren und aktualisieren.</p></section>
+{% if message %}<div class="notice success">{{ message }}</div>{% endif %}{% if error %}<div class="notice error-box">{{ error }}</div>{% endif %}
+<section class="install-nav grid">
+<a class="card install-nav-card" href="/installation/catalog"><h2>Projekt-Katalog</h2><p>Verfügbare und installierte Anwendungen durchsuchen.</p></a>
+<a class="card install-nav-card" href="/installation/updates"><h2>Updates</h2><p>Installierte und verfügbare Versionen vergleichen.</p></a>
+<a class="card install-nav-card" href="/installation/sources"><h2>GitHub & Gitea</h2><p>Paketquellen, Repository und Dateimuster verwalten.</p></a>
+<a class="card install-nav-card" href="/installation/queue"><h2>Warteschlange</h2><p>Installations- und Aktualisierungsaufträge verfolgen.</p></a>
+<a class="card install-nav-card" href="/software-center"><h2>Lokale DEB-Datei</h2><p>Pakete hochladen, prüfen und sicher installieren.</p></a>
+<a class="card install-nav-card" href="/app-store"><h2>App Store</h2><p>Kataloge importieren und neue Projekte übernehmen.</p></a>
 </section>
-{% endblock %}
+<h2>Direktinstallation</h2><section class="software-grid">
+{% for p in projects %}<article class="card software-card"><div class="tile-head"><h3>{{ p.name }}</h3><span class="badge">{{ p.category or 'Allgemein' }}</span></div>
+<p>{{ p.description or 'Keine Beschreibung vorhanden.' }}</p><div class="software-versions"><div><small>Installiert</small><strong>{{ p.installed_version or 'Nein' }}</strong></div><div><small>Verfügbar</small><strong>{{ p.latest_version or 'Kein Paket' }}</strong></div></div>
+{% if p.source_provider %}<p><small>Quelle</small><br><b>{{ p.source_provider|upper }}</b> · {{ p.source_repository }}</p>{% endif %}{% if p.source_error %}<p class="error">{{ p.source_error }}</p>{% endif %}
+<div class="actions">{% if logged_in and p.source_provider %}<form method="post" action="/installation/{{ p.id }}/refresh"><button class="secondary">Release prüfen</button></form>{% endif %}{% if p.latest_file %}<a class="button secondary" href="/packages/{{ p.latest_file }}">DEB laden</a>{% if logged_in %}<form method="post" action="/installation/{{ p.id }}/install"><button>Installieren</button></form>{% endif %}{% endif %}</div></article>{% else %}<div class="empty">Noch keine Projekte vorhanden. Über den App Store oder ein Manifest können Projekte übernommen werden.</div>{% endfor %}
+</section>{% endblock %}
