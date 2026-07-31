@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="page-head">
+  <div><span class="badge">Version 1.8.0</span><h1>Backup & Updates</h1><p>Sicherungen, Wiederherstellungsprüfung und Projektupdates an einer Stelle.</p></div>
+</section>
+{% if message %}<div class="notice success">{{ message }}</div>{% endif %}
+{% if error %}<div class="notice error-box">{{ error }}</div>{% endif %}
+
+<section class="maintenance-summary">
+  <article class="panel"><strong>{{ plans|length }}</strong><span>Sicherungspläne</span></article>
+  <article class="panel"><strong>{{ artifacts|length }}</strong><span>letzte Sicherungen</span></article>
+  <article class="panel"><strong>{{ updates|selectattr('update_available')|list|length }}</strong><span>Updates verfügbar</span></article>
+</section>
+
+<section class="admin-grid">
+  <article class="panel">
+    <h2>Sicherung jetzt erstellen</h2>
+    <form method="post" action="/maintenance/backups/create">
+      <label>Art<select name="kind"><option value="platform">Gesamte Plattform</option><option value="database">Nur Datenbank</option><option value="project">Projektmetadaten</option></select></label>
+      <label>Projekt<select name="project_id"><option value="">Kein Projekt</option>{% for project in projects %}<option value="{{ project.id }}">{{ project.name }}</option>{% endfor %}</select></label>
+      <button>Sicherung erstellen</button>
+    </form>
+  </article>
+  <article class="panel">
+    <h2>Sicherungsplan anlegen</h2>
+    <form method="post" action="/maintenance/plans/add">
+      <label>Name<input name="name" required maxlength="120"></label>
+      <label>Art<select name="kind"><option value="platform">Plattform</option><option value="database">Datenbank</option><option value="project">Projekt</option></select></label>
+      <label>Projekt<select name="project_id"><option value="">Kein Projekt</option>{% for project in projects %}<option value="{{ project.id }}">{{ project.name }}</option>{% endfor %}</select></label>
+      <label>Zeitplan<select name="schedule"><option value="manual">Manuell</option><option value="daily">Täglich</option><option value="weekly">Wöchentlich</option><option value="monthly">Monatlich</option></select></label>
+      <label>Aufbewahrung<input type="number" name="retention_count" value="10" min="1" max="365"></label>
+      <button>Plan speichern</button>
+    </form>
+  </article>
+  <article class="panel">
+    <h2>Wiederherstellung prüfen</h2>
+    <p>Das Archiv wird auf Format, Größe, Pfade und Metadaten geprüft. Es wird noch nicht automatisch eingespielt.</p>
+    <form method="post" action="/maintenance/restore/validate" enctype="multipart/form-data">
+      <label>Backup-Datei<input type="file" name="backup" accept=".tar.gz,.tgz" required></label>
+      <button>Prüfen und bereitstellen</button>
+    </form>
+  </article>
+</section>
+
+<section class="panel">
+  <h2>Projektupdates</h2>
+  <div class="table-wrap"><table><thead><tr><th>Projekt</th><th>Installiert</th><th>Verfügbar</th><th>Status</th><th>Aktion</th></tr></thead><tbody>
+  {% for item in updates %}<tr><td>{{ item.name }}</td><td>{{ item.installed_version or 'nicht installiert' }}</td><td>{{ item.latest_version or 'noch nicht abgerufen' }}</td><td>{% if item.update_available %}<span class="software-state state-update">Update verfügbar</span>{% else %}<span class="software-state state-ok">Aktuell/Unbekannt</span>{% endif %}</td><td><form method="post" action="/maintenance/updates/{{ item.id }}/install"><button {% if not item.package_name %}disabled{% endif %}>Prüfen & aktualisieren</button></form></td></tr>{% else %}<tr><td colspan="5">Noch keine Projekte vorhanden.</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+
+<section class="panel">
+  <h2>Sicherungspläne</h2>
+  <div class="table-wrap"><table><thead><tr><th>Name</th><th>Art</th><th>Projekt</th><th>Zeitplan</th><th>Aufbewahrung</th><th>Letzter Lauf</th><th></th></tr></thead><tbody>
+  {% for plan in plans %}<tr><td>{{ plan.name }}</td><td>{{ plan.kind }}</td><td>{{ plan.project_name or 'Plattform' }}</td><td>{{ plan.schedule }}</td><td>{{ plan.retention_count }}</td><td>{{ plan.last_run_at or 'noch nie' }}</td><td><form method="post" action="/maintenance/plans/{{ plan.id }}/run"><button>Jetzt ausführen</button></form></td></tr>{% else %}<tr><td colspan="7">Noch keine Sicherungspläne.</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+
+<section class="panel">
+  <h2>Sicherungsarchiv</h2>
+  <div class="table-wrap"><table><thead><tr><th>Datei</th><th>Art</th><th>Projekt</th><th>Größe</th><th>SHA256</th><th>Erstellt</th><th></th></tr></thead><tbody>
+  {% for item in artifacts %}<tr><td>{{ item.filename }}</td><td>{{ item.kind }}</td><td>{{ item.project_name or 'Plattform' }}</td><td>{{ (item.size_bytes / 1048576)|round(2) }} MB</td><td><code>{{ item.sha256[:16] }}…</code></td><td>{{ item.created_at }}</td><td><a class="button secondary" href="/maintenance/backups/{{ item.id }}/download">Download</a></td></tr>{% else %}<tr><td colspan="7">Noch keine Sicherungen vorhanden.</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+
+<section class="panel">
+  <h2>Wartungsverlauf</h2>
+  <div class="table-wrap"><table><thead><tr><th>ID</th><th>Typ</th><th>Projekt</th><th>Status</th><th>Fortschritt</th><th>Meldung</th><th>Zeit</th></tr></thead><tbody>
+  {% for job in jobs %}<tr><td>#{{ job.id }}</td><td>{{ job.job_type }}</td><td>{{ job.project_name or 'Plattform' }}</td><td><span class="software-state state-{{ job.state }}">{{ job.state }}</span></td><td>{{ job.progress }} %</td><td>{{ job.error or job.message }}</td><td>{{ job.finished_at or job.created_at }}</td></tr>{% else %}<tr><td colspan="7">Noch keine Wartungsjobs.</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+{% endblock %}
