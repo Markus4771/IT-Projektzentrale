@@ -1,0 +1,54 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import importlib
+import os
+import sqlite3
+import subprocess
+import sys
+from pathlib import Path
+
+STATE = Path(os.getenv("ITPZ_STATE_DIR", "/var/lib/it-projektzentrale"))
+DB = STATE / "data" / "projektzentrale.db"
+CONFIG = Path("/etc/it-projektzentrale.conf")
+CHECKS: list[tuple[str, bool, str]] = []
+
+
+def check(name: str, ok: bool, detail: str = "") -> None:
+    CHECKS.append((name, ok, detail))
+
+
+check("Konfigurationsdatei", CONFIG.is_file(), str(CONFIG))
+secret = os.getenv("ITPZ_SECRET", "")
+check("ITPZ_SECRET", len(secret) >= 32, f"Länge={len(secret)}")
+check("Datenverzeichnis beschreibbar", os.access(STATE / "data", os.W_OK), str(STATE / "data"))
+check("Datenbank vorhanden", DB.is_file(), str(DB))
+
+if DB.is_file():
+    try:
+        with sqlite3.connect(DB) as conn:
+            integrity = conn.execute("PRAGMA integrity_check").fetchone()[0]
+            check("SQLite-Integrität", integrity == "ok", str(integrity))
+            tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+            check("Monitoring-Migration", "monitoring_rules" in tables, "monitoring_rules")
+            columns = {row[1] for row in conn.execute("PRAGMA table_info(installation_jobs)")}
+            check("Installationsmigration", "phase" in columns, "installation_jobs.phase")
+    except Exception as exc:
+        check("SQLite-Zugriff", False, str(exc))
+
+try:
+    runtime = importlib.import_module("app.v311_runtime")
+    check("Runtime-Import", hasattr(runtime.app, "router"), runtime.VERSION)
+except Exception as exc:
+    check("Runtime-Import", False, repr(exc))
+
+for service in ("it-projektzentrale.service", "it-projektzentrale-worker.service", "it-projektzentrale-monitor.service"):
+    result = subprocess.run(["/usr/bin/systemctl", "is-enabled", service], capture_output=True, text=True, check=False)
+    check(f"systemd {service}", result.returncode == 0, result.stdout.strip() or result.stderr.strip())
+
+failed = 0
+for name, ok, detail in CHECKS:
+    print(f"[{'OK' if ok else 'FEHLER'}] {name}: {detail}")
+    failed += 0 if ok else 1
+print(f"\nErgebnis: {len(CHECKS)-failed}/{len(CHECKS)} Prüfungen erfolgreich")
+sys.exit(1 if failed else 0)
