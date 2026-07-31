@@ -1,0 +1,22 @@
+[Unit]
+Description=IT-Projektzentrale Remote Agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+EnvironmentFile=/etc/itpz-agent.conf
+ExecStart=/usr/lib/itpz-agent/itpz-agent.py
+Restart=on-failure
+RestartSec=5
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/itpz-agent /var/cache/apt/archives
+NoNewPrivileges=false
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
