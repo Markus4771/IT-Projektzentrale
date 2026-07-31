@@ -23,7 +23,8 @@ def test_user_management_module_is_wired_into_current_release():
     assert "from app.v301 import app" in v302
     assert "from app.v302 import app" in release_module
     assert "app.v310_runtime:app" in service
-    assert (root / "version.txt").read_text(encoding="utf-8").strip() == "3.1.0"
+    assert "app.v311_runtime:app" in service
+    assert (root / "version.txt").read_text(encoding="utf-8").strip() == "3.1.1"
 
 
 def test_user_management_contains_safety_guards():

@@ -9,7 +9,7 @@ BUILD_DIR=$(mktemp -d)
 PACKAGE_ROOT="$BUILD_DIR/package"
 cleanup() { rm -rf "$BUILD_DIR"; }
 trap cleanup EXIT
-mkdir -p "$PACKAGE_ROOT/DEBIAN" "$PACKAGE_ROOT/opt/it-projektzentrale" "$PACKAGE_ROOT/usr/lib/it-projektzentrale" "$PACKAGE_ROOT/etc/nginx/sites-available" "$PACKAGE_ROOT/etc/systemd/system" "$ROOT_DIR/dist"
+mkdir -p "$PACKAGE_ROOT/DEBIAN" "$PACKAGE_ROOT/opt/it-projektzentrale" "$PACKAGE_ROOT/usr/lib/it-projektzentrale" "$PACKAGE_ROOT/usr/share/doc/it-projektzentrale" "$PACKAGE_ROOT/etc/nginx/sites-available" "$PACKAGE_ROOT/etc/systemd/system" "$ROOT_DIR/dist"
 cp -a "$ROOT_DIR/app" "$ROOT_DIR/templates" "$ROOT_DIR/static" "$ROOT_DIR/nginx" "$ROOT_DIR/systemd" "$ROOT_DIR/requirements.txt" "$ROOT_DIR/version.txt" "$ROOT_DIR/README.md" "$ROOT_DIR/CHANGELOG.md" "$ROOT_DIR/CHATGPT_PROJEKTKONTEXT.md" "$ROOT_DIR/NEUER_CHAT.md" "$ROOT_DIR/install.sh" "$PACKAGE_ROOT/opt/it-projektzentrale/"
 rm -rf "$PACKAGE_ROOT/opt/it-projektzentrale/app/__pycache__"
 install -m 0644 "$ROOT_DIR/nginx/it-projektzentrale.conf" "$PACKAGE_ROOT/etc/nginx/sites-available/it-projektzentrale.conf"
@@ -22,13 +22,15 @@ install -m 0755 "$ROOT_DIR/scripts/itpz-install-worker" "$PACKAGE_ROOT/usr/lib/i
 install -m 0755 "$ROOT_DIR/scripts/itpz-compose-helper" "$PACKAGE_ROOT/usr/lib/it-projektzentrale/itpz-compose-helper"
 install -m 0755 "$ROOT_DIR/scripts/itpz-monitor-worker" "$PACKAGE_ROOT/usr/lib/it-projektzentrale/itpz-monitor-worker"
 install -m 0755 "$ROOT_DIR/scripts/itpz-plugin-helper" "$PACKAGE_ROOT/usr/lib/it-projektzentrale/itpz-plugin-helper"
+install -m 0755 "$ROOT_DIR/scripts/itpz-doctor" "$PACKAGE_ROOT/usr/lib/it-projektzentrale/itpz-doctor"
+install -m 0644 "$ROOT_DIR/docs/LTS_3_1.md" "$PACKAGE_ROOT/usr/share/doc/it-projektzentrale/LTS_3_1.md"
 sed "s/@DEBIAN_VERSION@/$DEBIAN_VERSION/" "$ROOT_DIR/debian/control.in" > "$PACKAGE_ROOT/DEBIAN/control"
 install -m 0644 "$ROOT_DIR/debian/conffiles" "$PACKAGE_ROOT/DEBIAN/conffiles"
 install -m 0755 "$ROOT_DIR/debian/postinst" "$PACKAGE_ROOT/DEBIAN/postinst"
 install -m 0755 "$ROOT_DIR/debian/prerm" "$PACKAGE_ROOT/DEBIAN/prerm"
 install -m 0755 "$ROOT_DIR/debian/postrm" "$PACKAGE_ROOT/DEBIAN/postrm"
-VERSION_SOURCE="$ROOT_DIR/app/main.py"
-for candidate in "$ROOT_DIR"/app/v*.py; do [[ -f "$candidate" ]] || continue; VERSION_SOURCE="$candidate"; done
+VERSION_SOURCE="$ROOT_DIR/app/v${APP_VERSION//./}.py"
+[[ -f "$VERSION_SOURCE" ]] || { echo "Versionsmodul fehlt: $VERSION_SOURCE" >&2; exit 1; }
 SOURCE_VERSION=$(sed -n 's/^VERSION = "\([^"]*\)"/\1/p' "$VERSION_SOURCE")
 if [[ "$SOURCE_VERSION" != "$APP_VERSION" ]]; then echo "Versionsfehler: ${VERSION_SOURCE#$ROOT_DIR/}=$SOURCE_VERSION, version.txt=$APP_VERSION" >&2; exit 1; fi
 dpkg-deb --root-owner-group --build "$PACKAGE_ROOT" "$ROOT_DIR/dist/$PACKAGE_NAME"

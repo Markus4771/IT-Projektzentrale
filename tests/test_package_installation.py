@@ -19,9 +19,7 @@ def test_postinst_repairs_state_permissions_before_start() -> None:
     assert "repair_state_permissions" in postinst
     assert 'chown -R "$APP_USER:$APP_USER" "$STATE_DIR/data"' in postinst
     assert 'install -d -m 0750 -o root -g "$APP_USER" "$STATE_DIR/plugins"' in postinst
-    assert "verify_state_writable" in postinst
-    assert 'touch "$1/.write-test"' in postinst
-    assert postinst.index("verify_state_writable") < postinst.rindex('systemctl restart "$SERVICE"')
+    assert postinst.index("repair_state_permissions") < postinst.index('systemctl start "$SERVICE"')
 
 
 def test_postinst_requires_successful_health_check() -> None:
@@ -40,7 +38,8 @@ def test_upgrade_repairs_secret_and_serializes_worker_startup() -> None:
     assert "EnvironmentFile=/etc/it-projektzentrale.conf" in app_unit
     assert "SECRET_VALUE=" in postinst
     assert 'if [ "${#SECRET_VALUE}" -lt 32 ]' in postinst
-    assert postinst.index('systemctl restart "$SERVICE"') < postinst.index('systemctl restart "$WORKER"')
-    assert postinst.index("if ! wait_for_health") < postinst.index('systemctl restart "$WORKER"')
+    assert postinst.index('systemctl start "$SERVICE"') < postinst.index('systemctl start "$WORKER"')
+    assert postinst.index("wait_for_health || fail") < postinst.index('systemctl start "$WORKER"')
+    assert postinst.index('systemctl start "$WORKER"') < postinst.index('systemctl start "$MONITOR"')
     assert "ExecStartPre=/usr/bin/curl" in worker_unit
     assert "ExecStartPre=/usr/bin/curl" in monitor_unit

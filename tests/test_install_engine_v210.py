@@ -27,8 +27,9 @@ def test_v210_release_wiring():
     assert "from app.v301 import app" in v302
     assert "from app.v302 import app" in current
     assert "app.v310_runtime:app" in service
+    assert "app.v311_runtime:app" in service
     assert '\"version\":\"2.5.0\"' in postinst
-    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.1.0"
+    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.1.1"
     assert "app.version = VERSION" in runtime
 
 

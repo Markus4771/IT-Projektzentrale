@@ -16,8 +16,9 @@ def test_v301_release_remains_in_chain():
     assert "from app.v302 import app" in current
     assert "app.v301_runtime:app" in service
     assert "app.v310_runtime:app" in service
+    assert "app.v311_runtime:app" in service
     assert '"version":"3.0.1"' in postinst
-    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.1.0"
+    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.1.1"
 
 
 def test_marketplace_blocks_ssrf_and_unsafe_versions():
@@ -47,4 +48,4 @@ def test_postinst_preserves_and_validates_master_key():
     postinst = (ROOT / "debian/postinst").read_text(encoding="utf-8")
     assert 'if [ ! -s "$MASTER_KEY" ]' in postinst
     assert "Fernet(Path(sys.argv[1]).read_bytes().strip())" in postinst
-    assert "wurde er nicht ersetzt" in postinst
+    assert 'fail "Master-Key ist ungültig"' in postinst

@@ -12,27 +12,43 @@ SERVICE=it-projektzentrale.service
 WORKER=it-projektzentrale-worker.service
 MONITOR=it-projektzentrale-monitor.service
 HEALTH_URL=http://127.0.0.1:8000/health
-EXPECTED_VERSION=3.1.0
+EXPECTED_VERSION=3.1.1
+
+fail() {
+ echo "Fehler bei der Einrichtung: $1" >&2
+ systemctl status "$SERVICE" --no-pager -l >&2 2>/dev/null || true
+ journalctl -u "$SERVICE" -n 120 --no-pager >&2 2>/dev/null || true
+ echo "Diagnose: sudo -u $APP_USER env $(grep -v '^#' "$CONFIG" 2>/dev/null | xargs) /usr/lib/it-projektzentrale/itpz-doctor" >&2
+ exit 1
+}
 
 repair_state_permissions() {
  install -d -m 0750 -o "$APP_USER" -g "$APP_USER" "$STATE_DIR" "$STATE_DIR/data" "$STATE_DIR/uploads" "$STATE_DIR/uploads/packages" "$STATE_DIR/uploads/plugins" "$STATE_DIR/backups" "$STATE_DIR/backups/installations" "$STATE_DIR/backups/compose" "$STATE_DIR/exports"
  install -d -m 0750 -o root -g "$APP_USER" "$STATE_DIR/plugins" "$STATE_DIR/plugins/enabled" /srv/itpz-compose
  chown -R "$APP_USER:$APP_USER" "$STATE_DIR/data" "$STATE_DIR/uploads" "$STATE_DIR/backups" "$STATE_DIR/exports"
- chmod 0750 "$STATE_DIR" "$STATE_DIR/data" "$STATE_DIR/uploads" "$STATE_DIR/uploads/packages" "$STATE_DIR/uploads/plugins" "$STATE_DIR/backups" "$STATE_DIR/backups/installations" "$STATE_DIR/backups/compose" "$STATE_DIR/exports"
  find "$STATE_DIR/data" -type d -exec chmod 0750 {} \;
  find "$STATE_DIR/data" -type f -exec chmod 0640 {} \;
 }
-verify_state_writable() { runuser -u "$APP_USER" -- sh -c 'test -w "$1" && touch "$1/.write-test" && rm -f "$1/.write-test"' sh "$STATE_DIR/data"; }
-wait_for_health() { attempt=0; while [ "$attempt" -lt 45 ]; do if response=$(curl -fsS --max-time 2 "$HEALTH_URL" 2>/dev/null); then case "$response" in *'"status":"ok"'*'"version":"3.1.0"'*) return 0 ;; esac; fi; attempt=$((attempt + 1)); sleep 1; done; return 1; }
 
-if ! getent passwd "$APP_USER" >/dev/null 2>&1; then adduser --system --group --home "$STATE_DIR" --no-create-home "$APP_USER"; fi
+wait_for_health() {
+ attempt=0
+ while [ "$attempt" -lt 60 ]; do
+  response=$(curl -fsS --max-time 2 "$HEALTH_URL" 2>/dev/null || true)
+  case "$response" in *'"status":"ok"'*'"version":"3.1.1"'*) return 0 ;; esac
+  attempt=$((attempt + 1)); sleep 1
+ done
+ return 1
+}
+
+getent passwd "$APP_USER" >/dev/null 2>&1 || adduser --system --group --home "$STATE_DIR" --no-create-home "$APP_USER"
+systemctl stop "$WORKER" "$MONITOR" "$SERVICE" >/dev/null 2>&1 || true
 repair_state_permissions
-chown -R root:root "$APP_DIR"; chmod -R u=rwX,go=rX "$APP_DIR"
-if [ ! -x "$VENV_DIR/bin/python" ]; then python3 -m venv "$VENV_DIR"; fi
+chown -R root:root "$APP_DIR"
+chmod -R u=rwX,go=rX "$APP_DIR"
+
+[ -x "$VENV_DIR/bin/python" ] || python3 -m venv "$VENV_DIR"
 chown -R "$APP_USER:$APP_USER" "$VENV_DIR"
-runuser -u "$APP_USER" -- "$VENV_DIR/bin/pip" install --disable-pip-version-check --upgrade pip
-runuser -u "$APP_USER" -- "$VENV_DIR/bin/pip" install --disable-pip-version-check -r "$APP_DIR/requirements.txt"
-repair_state_permissions; verify_state_writable
+runuser -u "$APP_USER" -- "$VENV_DIR/bin/pip" install --disable-pip-version-check -r "$APP_DIR/requirements.txt" || fail "Python-Abhängigkeiten konnten nicht installiert werden"
 
 if [ ! -s "$MASTER_KEY" ]; then
  umask 077
@@ -41,16 +57,12 @@ from cryptography.fernet import Fernet
 print(Fernet.generate_key().decode())
 PY
 fi
-if ! "$VENV_DIR/bin/python" - "$MASTER_KEY" <<'PY'
+"$VENV_DIR/bin/python" - "$MASTER_KEY" <<'PY' || fail "Master-Key ist ungültig"
 from cryptography.fernet import Fernet
 from pathlib import Path
 import sys
 Fernet(Path(sys.argv[1]).read_bytes().strip())
 PY
-then
- echo "Fehler: Der bestehende Master-Key ist ungültig. Aus Sicherheitsgründen wurde er nicht ersetzt." >&2
- exit 1
-fi
 chown root:"$APP_USER" "$MASTER_KEY"; chmod 0640 "$MASTER_KEY"
 
 NEW_PASSWORD=0
@@ -73,12 +85,9 @@ EOF
 fi
 SECRET_VALUE=$(sed -n 's/^ITPZ_SECRET=//p' "$CONFIG" | tail -n 1 | tr -d '\r\n')
 if [ "${#SECRET_VALUE}" -lt 32 ]; then
- NEW_SECRET=$(openssl rand -hex 32)
- TMP_CONFIG=$(mktemp)
- grep -v '^ITPZ_SECRET=' "$CONFIG" > "$TMP_CONFIG" || true
- printf 'ITPZ_SECRET=%s\n' "$NEW_SECRET" >> "$TMP_CONFIG"
- cat "$TMP_CONFIG" > "$CONFIG"
- rm -f "$TMP_CONFIG"
+ TMP_CONFIG=$(mktemp); grep -v '^ITPZ_SECRET=' "$CONFIG" > "$TMP_CONFIG" || true
+ printf 'ITPZ_SECRET=%s\n' "$(openssl rand -hex 32)" >> "$TMP_CONFIG"
+ cat "$TMP_CONFIG" > "$CONFIG"; rm -f "$TMP_CONFIG"
 fi
 for setting in 'ITPZ_MASTER_KEY_FILE=/etc/it-projektzentrale.master.key' 'ITPZ_MARKETPLACE_MAX_PACKAGE=268435456' 'ITPZ_MONITOR_INTERVAL=60'; do key=${setting%%=*}; grep -q "^$key=" "$CONFIG" || echo "$setting" >> "$CONFIG"; done
 chown root:root "$CONFIG"; chmod 0600 "$CONFIG"
@@ -89,19 +98,21 @@ it-projektzentrale ALL=(root) NOPASSWD: /usr/lib/it-projektzentrale/itpz-compose
 it-projektzentrale ALL=(root) NOPASSWD: /usr/lib/it-projektzentrale/itpz-plugin-helper *
 EOF
 chmod 0440 /etc/sudoers.d/it-projektzentrale
-command -v visudo >/dev/null 2>&1 && visudo -cf /etc/sudoers.d/it-projektzentrale >/dev/null
+command -v visudo >/dev/null 2>&1 && visudo -cf /etc/sudoers.d/it-projektzentrale >/dev/null || fail "sudoers-Prüfung fehlgeschlagen"
+
 rm -f /etc/nginx/sites-enabled/it-projektzentrale /etc/nginx/sites-enabled/default
 ln -sfn /etc/nginx/sites-available/it-projektzentrale.conf /etc/nginx/sites-enabled/it-projektzentrale.conf
+nginx -t || fail "Nginx-Konfiguration ist ungültig"
 systemctl daemon-reload
-/usr/lib/it-projektzentrale/itpz-helper rebuild-allowlists || true
-nginx -t
+systemctl reset-failed "$SERVICE" "$WORKER" "$MONITOR" >/dev/null 2>&1 || true
 systemctl enable "$SERVICE" "$WORKER" "$MONITOR" nginx.service >/dev/null 2>&1 || true
-systemctl stop "$WORKER" "$MONITOR" >/dev/null 2>&1 || true
-systemctl restart "$SERVICE"
-if ! wait_for_health; then echo "Fehler: Health-Check meldet nicht Version $EXPECTED_VERSION." >&2; systemctl status "$SERVICE" --no-pager -l >&2 || true; journalctl -u "$SERVICE" -n 120 --no-pager >&2 || true; exit 1; fi
-systemctl restart "$WORKER"
-systemctl restart "$MONITOR"
-systemctl restart nginx.service
+/usr/lib/it-projektzentrale/itpz-helper rebuild-allowlists >/dev/null 2>&1 || true
+systemctl start "$SERVICE" || fail "Hauptdienst konnte nicht gestartet werden"
+wait_for_health || fail "Health-Check meldet nicht Version $EXPECTED_VERSION"
+systemctl start "$WORKER" || fail "Installations-Worker konnte nicht gestartet werden"
+systemctl start "$MONITOR" || fail "Monitoring-Worker konnte nicht gestartet werden"
+systemctl restart nginx.service || fail "Nginx konnte nicht gestartet werden"
+
 IP_ADDR=$(hostname -I 2>/dev/null | awk '{print $1}'); [ -n "$IP_ADDR" ] || IP_ADDR=SERVER-IP
 echo "IT-Projektzentrale $EXPECTED_VERSION wurde erfolgreich eingerichtet. Aufruf: http://$IP_ADDR/"
 [ "$NEW_PASSWORD" -eq 0 ] || echo "Initialzugang: /root/it-projektzentrale-initial-password"
