@@ -33,7 +33,7 @@ wait_for_health() {
     while [ "$attempt" -lt 20 ]; do
         if response=$(curl -fsS --max-time 2 "$HEALTH_URL" 2>/dev/null); then
             case "$response" in
-                *'"status":"ok"'*'"version":"1.3.0"'*) return 0 ;;
+                *'"status":"ok"'*'"version":"1.4.0"'*) return 0 ;;
             esac
         fi
         attempt=$((attempt + 1))
@@ -49,7 +49,6 @@ fi
 repair_state_permissions
 install -d -m 0700 -o root -g root "$HELPER_STATE_DIR"
 
-# Bestandsdaten aus früheren Versionen übernehmen.
 for directory in data uploads backups exports; do
     if [ -d "$APP_DIR/$directory" ]; then
         cp -a "$APP_DIR/$directory/." "$STATE_DIR/$directory/"
@@ -83,12 +82,9 @@ if [ "$NEEDS_CONFIG" -eq 1 ]; then
     HAS_USERS=$(python3 - "$STATE_DIR/data/projektzentrale.db" <<'PY_USERS'
 import sqlite3
 import sys
-
 try:
     with sqlite3.connect(sys.argv[1]) as connection:
-        exists = connection.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='users'"
-        ).fetchone()
+        exists = connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='users'").fetchone()
         count = connection.execute("SELECT COUNT(*) FROM users").fetchone()[0] if exists else 0
 except sqlite3.Error:
     count = 0
@@ -138,7 +134,7 @@ systemctl restart "$SERVICE"
 systemctl restart nginx.service
 
 if ! wait_for_health; then
-    echo "Fehler: Der Health-Check meldet nicht die erwartete Version 1.3.0." >&2
+    echo "Fehler: Der Health-Check meldet nicht die erwartete Version 1.4.0." >&2
     curl -sS "$HEALTH_URL" >&2 || true
     echo >&2
     systemctl status "$SERVICE" --no-pager -l >&2 || true
@@ -149,7 +145,7 @@ fi
 IP_ADDR=$(hostname -I 2>/dev/null | awk '{print $1}')
 [ -n "$IP_ADDR" ] || IP_ADDR="SERVER-IP"
 echo ""
-echo "IT-Projektzentrale 1.3.0 wurde erfolgreich eingerichtet."
+echo "IT-Projektzentrale 1.4.0 wurde erfolgreich eingerichtet."
 echo "Aufruf: http://$IP_ADDR/"
 if [ "$NEW_PASSWORD" -eq 1 ]; then
     echo "Initialzugang: /root/it-projektzentrale-initial-password"
