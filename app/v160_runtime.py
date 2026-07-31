@@ -6,6 +6,7 @@ import json
 from typing import Any
 
 import app.v150 as plugin_module
+import app.v160 as store_module
 from app.main import db
 from app.v160 import app
 
@@ -79,3 +80,4 @@ def upsert_manifest(manifest: dict[str, Any], trusted: bool) -> int:
 
 
 plugin_module._upsert_manifest = upsert_manifest
+store_module._upsert_manifest = upsert_manifest
