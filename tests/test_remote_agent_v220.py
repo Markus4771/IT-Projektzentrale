@@ -34,4 +34,5 @@ def test_version_220_remains_in_release_chain():
     assert 'app.v311_runtime:app' in service
     assert 'app.v320_runtime:app' in service
     assert 'app.v330_runtime:app' in service
-    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.3.0"
+    assert 'app.v331_runtime:app' in service
+    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.3.1"
