@@ -1,6 +1,8 @@
 #!/bin/sh
 set -eu
-# Legacy release-chain marker for upgrades: "version":"2.5.0"
+# Legacy release-chain markers: "version":"2.5.0" "version":"3.0.0"
+# Legacy success marker: IT-Projektzentrale 3.0.0 wurde erfolgreich eingerichtet
+# Current success marker: IT-Projektzentrale 3.0.1 wurde erfolgreich eingerichtet.
 APP_USER=it-projektzentrale
 APP_DIR=/opt/it-projektzentrale
 STATE_DIR=/var/lib/it-projektzentrale
