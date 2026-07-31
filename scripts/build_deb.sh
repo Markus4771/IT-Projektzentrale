@@ -23,8 +23,10 @@ rm -rf "$PACKAGE_ROOT/opt/it-projektzentrale/app/__pycache__"
 
 install -m 0644 "$ROOT_DIR/nginx/it-projektzentrale.conf" "$PACKAGE_ROOT/etc/nginx/sites-available/it-projektzentrale.conf"
 install -m 0644 "$ROOT_DIR/systemd/it-projektzentrale.service" "$PACKAGE_ROOT/etc/systemd/system/it-projektzentrale.service"
+install -m 0644 "$ROOT_DIR/systemd/it-projektzentrale-worker.service" "$PACKAGE_ROOT/etc/systemd/system/it-projektzentrale-worker.service"
 install -m 0755 "$ROOT_DIR/scripts/itpz-helper" "$PACKAGE_ROOT/usr/lib/it-projektzentrale/itpz-helper"
 install -m 0700 "$ROOT_DIR/scripts/itpz-helper" "$PACKAGE_ROOT/usr/lib/it-projektzentrale/itpz-helper-worker"
+install -m 0755 "$ROOT_DIR/scripts/itpz-install-worker" "$PACKAGE_ROOT/usr/lib/it-projektzentrale/itpz-install-worker"
 
 sed "s/@DEBIAN_VERSION@/$DEBIAN_VERSION/" "$ROOT_DIR/debian/control.in" > "$PACKAGE_ROOT/DEBIAN/control"
 install -m 0644 "$ROOT_DIR/debian/conffiles" "$PACKAGE_ROOT/DEBIAN/conffiles"

@@ -6,14 +6,16 @@ ROOT = Path(__file__).resolve().parents[1]
 def test_v190_release_wiring():
     source = (ROOT / "app/v190.py").read_text(encoding="utf-8")
     runtime = (ROOT / "app/v190_runtime.py").read_text(encoding="utf-8")
-    current = (ROOT / "app/v200.py").read_text(encoding="utf-8")
+    v200 = (ROOT / "app/v200.py").read_text(encoding="utf-8")
+    current = (ROOT / "app/v210.py").read_text(encoding="utf-8")
     service = (ROOT / "systemd/it-projektzentrale.service").read_text(encoding="utf-8")
     assert 'VERSION = "1.9.0"' in source
     assert 'VERSION = "1.9.0"' in runtime
     assert "app.v180_runtime" in runtime
-    assert "from app.v190 import app" in current
-    assert "app.v200:app" in service
-    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "2.0.0"
+    assert "from app.v190 import app" in v200
+    assert "from app.v200 import app" in current
+    assert "app.v210_runtime:app" in service
+    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "2.1.0"
 
 
 def test_infrastructure_has_guardrails():
