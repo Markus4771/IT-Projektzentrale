@@ -27,6 +27,7 @@ install -m 0644 "$ROOT_DIR/systemd/it-projektzentrale-worker.service" "$PACKAGE_
 install -m 0755 "$ROOT_DIR/scripts/itpz-helper" "$PACKAGE_ROOT/usr/lib/it-projektzentrale/itpz-helper"
 install -m 0700 "$ROOT_DIR/scripts/itpz-helper" "$PACKAGE_ROOT/usr/lib/it-projektzentrale/itpz-helper-worker"
 install -m 0755 "$ROOT_DIR/scripts/itpz-install-worker" "$PACKAGE_ROOT/usr/lib/it-projektzentrale/itpz-install-worker"
+install -m 0755 "$ROOT_DIR/scripts/itpz-compose-helper" "$PACKAGE_ROOT/usr/lib/it-projektzentrale/itpz-compose-helper"
 
 sed "s/@DEBIAN_VERSION@/$DEBIAN_VERSION/" "$ROOT_DIR/debian/control.in" > "$PACKAGE_ROOT/DEBIAN/control"
 install -m 0644 "$ROOT_DIR/debian/conffiles" "$PACKAGE_ROOT/DEBIAN/conffiles"
