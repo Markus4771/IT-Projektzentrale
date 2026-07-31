@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Sicherheit & Recovery</h1>
+<p>Verschlüsselte Geheimnisse, Sperrlisten, Marketplace-Prüfungen und Wiederherstellungspunkte.</p>
+{% if message %}<div class="notice success">{{ message }}</div>{% endif %}
+{% if error %}<div class="notice error">{{ error }}</div>{% endif %}
+
+<section class="card">
+<h2>Secret speichern</h2>
+<form method="post" action="/security/secrets/set">
+<input name="name" placeholder="z. B. github.token" required>
+<input name="scope" value="global" placeholder="Geltungsbereich">
+<input name="value" type="password" placeholder="Geheimer Wert" required>
+<button>Verschlüsselt speichern</button>
+</form>
+<table><thead><tr><th>Name</th><th>Scope</th><th>Geändert</th><th></th></tr></thead><tbody>
+{% for item in secrets %}<tr><td>{{ item.name }}</td><td>{{ item.scope }}</td><td>{{ item.updated_at }}</td><td><form method="post" action="/security/secrets/{{ item.id }}/delete"><button class="danger">Löschen</button></form></td></tr>{% else %}<tr><td colspan="4">Keine Secrets gespeichert.</td></tr>{% endfor %}
+</tbody></table>
+</section>
+
+<section class="card">
+<h2>Herausgeber oder Paket sperren</h2>
+<form method="post" action="/security/revoke">
+<select name="artifact_type"><option value="publisher">Herausgeber</option><option value="package">Paket</option></select>
+<input name="fingerprint" placeholder="SHA256-Fingerprint" minlength="64" maxlength="64" required>
+<input name="reason" placeholder="Grund">
+<button>Sperren</button>
+</form>
+<table><thead><tr><th>Typ</th><th>Fingerprint</th><th>Grund</th><th>Zeit</th></tr></thead><tbody>
+{% for item in revoked %}<tr><td>{{ item.artifact_type }}</td><td><code>{{ item.fingerprint }}</code></td><td>{{ item.reason }}</td><td>{{ item.revoked_at }}</td></tr>{% else %}<tr><td colspan="4">Keine Sperren vorhanden.</td></tr>{% endfor %}
+</tbody></table>
+</section>
+
+<section class="card"><h2>Marketplace-Synchronisation</h2>
+<table><thead><tr><th>Katalog</th><th>Status</th><th>Pakete</th><th>Geändert</th><th>Fehler</th><th>Zeit</th></tr></thead><tbody>
+{% for run in sync_runs %}<tr><td>{{ run.catalog_name or run.catalog_id }}</td><td>{{ run.state }}</td><td>{{ run.packages_seen }}</td><td>{{ run.packages_changed }}</td><td>{{ run.error }}</td><td>{{ run.started_at }}</td></tr>{% else %}<tr><td colspan="6">Noch keine Synchronisation.</td></tr>{% endfor %}
+</tbody></table></section>
+
+<section class="card"><h2>Wiederherstellungspunkte</h2>
+<table><thead><tr><th>Name</th><th>SHA256</th><th>Status</th><th>Erstellt</th></tr></thead><tbody>
+{% for item in recovery %}<tr><td>{{ item.name }}</td><td><code>{{ item.sha256 }}</code></td><td>{{ item.state }}</td><td>{{ item.created_at }}</td></tr>{% else %}<tr><td colspan="4">Keine Wiederherstellungspunkte vorhanden.</td></tr>{% endfor %}
+</tbody></table></section>
+{% endblock %}
