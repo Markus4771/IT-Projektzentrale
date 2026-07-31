@@ -10,7 +10,8 @@ def test_user_management_module_is_wired_into_current_release():
     v250 = (root / "app/v250.py").read_text(encoding="utf-8")
     v300 = (root / "app/v300.py").read_text(encoding="utf-8")
     v301 = (root / "app/v301.py").read_text(encoding="utf-8")
-    release_module = (root / "app/v302.py").read_text(encoding="utf-8")
+    v302 = (root / "app/v302.py").read_text(encoding="utf-8")
+    release_module = (root / "app/v310.py").read_text(encoding="utf-8")
     service = (root / "systemd/it-projektzentrale.service").read_text(encoding="utf-8")
     assert "ROLES =" in user_module
     assert "from app.v210_runtime import app" in v220
@@ -19,9 +20,10 @@ def test_user_management_module_is_wired_into_current_release():
     assert "from app.v240 import app" in v250
     assert "from app.v250 import app" in v300
     assert "import app.v300 as v300" in v301
-    assert "from app.v301 import app" in release_module
-    assert "app.v302_runtime:app" in service
-    assert (root / "version.txt").read_text(encoding="utf-8").strip() == "3.0.2"
+    assert "from app.v301 import app" in v302
+    assert "from app.v302 import app" in release_module
+    assert "app.v310_runtime:app" in service
+    assert (root / "version.txt").read_text(encoding="utf-8").strip() == "3.1.0"
 
 
 def test_user_management_contains_safety_guards():
