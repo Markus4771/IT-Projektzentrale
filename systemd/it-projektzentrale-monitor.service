@@ -1,0 +1,29 @@
+[Unit]
+Description=IT-Projektzentrale Monitoring-Worker
+After=network-online.target it-projektzentrale.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=it-projektzentrale
+Group=it-projektzentrale
+EnvironmentFile=/etc/it-projektzentrale.conf
+ExecStart=/usr/lib/it-projektzentrale/itpz-monitor-worker
+Restart=always
+RestartSec=10
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictRealtime=true
+ReadWritePaths=/var/lib/it-projektzentrale
+NoNewPrivileges=true
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target
