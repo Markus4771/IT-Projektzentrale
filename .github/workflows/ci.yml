@@ -14,7 +14,7 @@ jobs:
       - name: Repository auschecken
         uses: actions/checkout@v4
       - name: Python-Syntax prüfen
-        run: python3 -m compileall -q app agent/itpz-agent.py scripts/itpz-helper scripts/itpz-install-worker scripts/itpz-compose-helper scripts/itpz-monitor-worker
+        run: python3 -m compileall -q app agent/itpz-agent.py scripts/itpz-helper scripts/itpz-install-worker scripts/itpz-compose-helper scripts/itpz-monitor-worker scripts/itpz-plugin-helper
       - name: Testabhängigkeiten installieren
         run: python3 -m pip install -r requirements.txt -r requirements-dev.txt
       - name: Automatisierte Tests
@@ -38,9 +38,9 @@ jobs:
           dpkg-deb --contents "$MAIN" | grep -Eq 'it-projektzentrale-monitor.service$'
           dpkg-deb --contents "$MAIN" | grep -Eq 'itpz-monitor-worker$'
           dpkg-deb --contents "$MAIN" | grep -Eq 'itpz-compose-helper$'
+          dpkg-deb --contents "$MAIN" | grep -Eq 'itpz-plugin-helper$'
           dpkg-deb --contents "$AGENT" | grep -Eq 'itpz-agent.service$'
           dpkg-deb --contents "$AGENT" | grep -Eq 'itpz-agent.py$'
-          dpkg-deb --contents "$AGENT" | grep -Eq 'srv/itpz-compose'
       - name: Build-Artefakte bereitstellen
         uses: actions/upload-artifact@v4
         with:
