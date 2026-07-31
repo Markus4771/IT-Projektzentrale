@@ -8,17 +8,19 @@ def test_monitoring_release_is_wired():
     runtime = (ROOT / "app/v240_runtime.py").read_text(encoding="utf-8")
     v250 = (ROOT / "app/v250.py").read_text(encoding="utf-8")
     v300 = (ROOT / "app/v300.py").read_text(encoding="utf-8")
-    current = (ROOT / "app/v301.py").read_text(encoding="utf-8")
+    v301 = (ROOT / "app/v301.py").read_text(encoding="utf-8")
+    current = (ROOT / "app/v302.py").read_text(encoding="utf-8")
     service = (ROOT / "systemd/it-projektzentrale.service").read_text(encoding="utf-8")
     postinst = (ROOT / "debian/postinst").read_text(encoding="utf-8")
     assert 'VERSION = "2.4.0"' in source
     assert 'VERSION = "2.4.0"' in runtime
     assert "from app.v240 import app" in v250
     assert "from app.v250 import app" in v300
-    assert "import app.v300 as v300" in current
-    assert "app.v301_runtime:app" in service
+    assert "import app.v300 as v300" in v301
+    assert "from app.v301 import app" in current
+    assert "app.v302_runtime:app" in service
     assert '"version":"2.5.0"' in postinst
-    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.0.1"
+    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.0.2"
 
 
 def test_monitoring_has_rules_alerts_and_windows():
@@ -42,4 +44,5 @@ def test_monitoring_worker_is_restricted_and_packaged():
     assert "https://" in worker
     assert "NoNewPrivileges=true" in unit
     assert "ProtectSystem=strict" in unit
+    assert "ExecStartPre=/usr/bin/curl" in unit
     assert "itpz-monitor-worker" in build

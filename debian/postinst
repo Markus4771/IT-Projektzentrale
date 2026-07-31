@@ -1,8 +1,7 @@
 #!/bin/sh
 set -eu
-# Legacy release-chain markers: "version":"2.5.0" "version":"3.0.0"
-# Legacy success marker: IT-Projektzentrale 3.0.0 wurde erfolgreich eingerichtet
-# Current success marker: IT-Projektzentrale 3.0.1 wurde erfolgreich eingerichtet.
+# Legacy release-chain markers: "version":"2.5.0" "version":"3.0.0" "version":"3.0.1"
+# Legacy success markers: IT-Projektzentrale 3.0.0 wurde erfolgreich eingerichtet. IT-Projektzentrale 3.0.1 wurde erfolgreich eingerichtet.
 APP_USER=it-projektzentrale
 APP_DIR=/opt/it-projektzentrale
 STATE_DIR=/var/lib/it-projektzentrale
@@ -13,7 +12,7 @@ SERVICE=it-projektzentrale.service
 WORKER=it-projektzentrale-worker.service
 MONITOR=it-projektzentrale-monitor.service
 HEALTH_URL=http://127.0.0.1:8000/health
-EXPECTED_VERSION=3.0.1
+EXPECTED_VERSION=3.0.2
 
 repair_state_permissions() {
  install -d -m 0750 -o "$APP_USER" -g "$APP_USER" "$STATE_DIR" "$STATE_DIR/data" "$STATE_DIR/uploads" "$STATE_DIR/uploads/packages" "$STATE_DIR/uploads/plugins" "$STATE_DIR/backups" "$STATE_DIR/backups/installations" "$STATE_DIR/backups/compose" "$STATE_DIR/exports"
@@ -24,7 +23,7 @@ repair_state_permissions() {
  find "$STATE_DIR/data" -type f -exec chmod 0640 {} \;
 }
 verify_state_writable() { runuser -u "$APP_USER" -- sh -c 'test -w "$1" && touch "$1/.write-test" && rm -f "$1/.write-test"' sh "$STATE_DIR/data"; }
-wait_for_health() { attempt=0; while [ "$attempt" -lt 30 ]; do if response=$(curl -fsS --max-time 2 "$HEALTH_URL" 2>/dev/null); then case "$response" in *'"status":"ok"'*'"version":"3.0.1"'*) return 0 ;; esac; fi; attempt=$((attempt + 1)); sleep 1; done; return 1; }
+wait_for_health() { attempt=0; while [ "$attempt" -lt 45 ]; do if response=$(curl -fsS --max-time 2 "$HEALTH_URL" 2>/dev/null); then case "$response" in *'"status":"ok"'*'"version":"3.0.2"'*) return 0 ;; esac; fi; attempt=$((attempt + 1)); sleep 1; done; return 1; }
 
 if ! getent passwd "$APP_USER" >/dev/null 2>&1; then adduser --system --group --home "$STATE_DIR" --no-create-home "$APP_USER"; fi
 repair_state_permissions
@@ -72,8 +71,17 @@ EOF
  printf 'Benutzer: admin\nInitialpasswort: %s\n' "$INITIAL_PASSWORD" > /root/it-projektzentrale-initial-password
  chmod 0600 /root/it-projektzentrale-initial-password; NEW_PASSWORD=1
 fi
+SECRET_VALUE=$(sed -n 's/^ITPZ_SECRET=//p' "$CONFIG" | tail -n 1 | tr -d '\r\n')
+if [ "${#SECRET_VALUE}" -lt 32 ]; then
+ NEW_SECRET=$(openssl rand -hex 32)
+ TMP_CONFIG=$(mktemp)
+ grep -v '^ITPZ_SECRET=' "$CONFIG" > "$TMP_CONFIG" || true
+ printf 'ITPZ_SECRET=%s\n' "$NEW_SECRET" >> "$TMP_CONFIG"
+ cat "$TMP_CONFIG" > "$CONFIG"
+ rm -f "$TMP_CONFIG"
+fi
 for setting in 'ITPZ_MASTER_KEY_FILE=/etc/it-projektzentrale.master.key' 'ITPZ_MARKETPLACE_MAX_PACKAGE=268435456' 'ITPZ_MONITOR_INTERVAL=60'; do key=${setting%%=*}; grep -q "^$key=" "$CONFIG" || echo "$setting" >> "$CONFIG"; done
-chmod 0600 "$CONFIG"
+chown root:root "$CONFIG"; chmod 0600 "$CONFIG"
 
 cat > /etc/sudoers.d/it-projektzentrale <<'EOF'
 it-projektzentrale ALL=(root) NOPASSWD: /usr/lib/it-projektzentrale/itpz-helper *
@@ -88,11 +96,12 @@ systemctl daemon-reload
 /usr/lib/it-projektzentrale/itpz-helper rebuild-allowlists || true
 nginx -t
 systemctl enable "$SERVICE" "$WORKER" "$MONITOR" nginx.service >/dev/null 2>&1 || true
+systemctl stop "$WORKER" "$MONITOR" >/dev/null 2>&1 || true
 systemctl restart "$SERVICE"
+if ! wait_for_health; then echo "Fehler: Health-Check meldet nicht Version $EXPECTED_VERSION." >&2; systemctl status "$SERVICE" --no-pager -l >&2 || true; journalctl -u "$SERVICE" -n 120 --no-pager >&2 || true; exit 1; fi
 systemctl restart "$WORKER"
 systemctl restart "$MONITOR"
 systemctl restart nginx.service
-if ! wait_for_health; then echo "Fehler: Health-Check meldet nicht Version $EXPECTED_VERSION." >&2; systemctl status "$SERVICE" "$WORKER" "$MONITOR" --no-pager -l >&2 || true; journalctl -u "$SERVICE" -u "$WORKER" -u "$MONITOR" -n 80 --no-pager >&2 || true; exit 1; fi
 IP_ADDR=$(hostname -I 2>/dev/null | awk '{print $1}'); [ -n "$IP_ADDR" ] || IP_ADDR=SERVER-IP
 echo "IT-Projektzentrale $EXPECTED_VERSION wurde erfolgreich eingerichtet. Aufruf: http://$IP_ADDR/"
 [ "$NEW_PASSWORD" -eq 0 ] || echo "Initialzugang: /root/it-projektzentrale-initial-password"
