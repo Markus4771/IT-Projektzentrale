@@ -9,6 +9,7 @@ Type=simple
 User=it-projektzentrale
 Group=it-projektzentrale
 EnvironmentFile=/etc/it-projektzentrale.conf
+ExecStartPre=/usr/bin/curl --fail --silent --show-error --retry 30 --retry-delay 1 --retry-connrefused http://127.0.0.1:8000/health
 ExecStart=/usr/lib/it-projektzentrale/itpz-install-worker
 Restart=on-failure
 RestartSec=5
