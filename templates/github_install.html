@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Programm aus GitHub installieren</h1>
+<p>Dieser Assistent prüft ein Repository, liest <code>projekt.yaml</code>, erkennt das aktuelle Release und erstellt anschließend einen sicheren Installationsplan.</p>
+{% if message %}<div class="message">{{ message }}</div>{% endif %}
+{% if error %}<div class="error">{{ error }}</div>{% endif %}
+<section class="card">
+  <h2>GitHub-Repository</h2>
+  {% if current_user.role == 'admin' %}
+  <form method="post" action="/github-install/prepare" class="form-grid">
+    <label>Repository
+      <input name="repository" required placeholder="Markus4771/contactsync" pattern="[^/]+/[^/]+">
+    </label>
+    <label>Token/Secret für private Repositorys
+      <select name="secret_name">
+        <option value="">Ohne Token – nur öffentliche Repositorys</option>
+        {% for name in secret_names %}<option value="{{ name }}">{{ name }}</option>{% endfor %}
+      </select>
+    </label>
+    <button type="submit">Repository prüfen und Installationsplan erstellen</button>
+  </form>
+  {% else %}<p>Nur Administratoren dürfen Installationen vorbereiten.</p>{% endif %}
+</section>
+<section class="card">
+  <h2>Voraussetzungen im Zielprojekt</h2>
+  <ol>
+    <li><code>projekt.yaml</code> im Hauptbranch</li>
+    <li>GitHub-Release mit genau einem passenden <code>.deb</code>-Paket</li>
+    <li>SHA256 des Pakets im Manifest</li>
+    <li>für private Repositorys ein gespeichertes GitHub-Token</li>
+  </ol>
+  <p>Nach erfolgreicher Prüfung folgt die Freigabe der Berechtigungen. Erst danach wird die Installation gestartet.</p>
+</section>
+{% endblock %}
