@@ -1,31 +1,63 @@
 {% extends 'base.html' %}
 {% block content %}
-<h1>Remote-Projektquellen</h1>
-<p>GitHub- und Gitea-Repositories synchronisieren, Releases erkennen und geprüfte Debian-Pakete installieren.</p>
+<div class="page-head"><div><h1>GitHub- und Gitea-Quellen</h1><p>Release-Quellen je Projekt verwalten, prüfen und synchronisieren.</p></div><a class="button secondary" href="/project-framework">Zur Übersicht</a></div>
 {% if message %}<div class="message">{{ message }}</div>{% endif %}
 {% if error %}<div class="error">{{ error }}</div>{% endif %}
+
 {% if current_user.role == 'admin' %}
 <section class="card">
-<h2>Quelle hinzufügen</h2>
+<h2>Neue Quelle hinzufügen</h2>
 <form method="post" action="/project-framework/remotes" class="form-grid">
-<label>Name<input name="name" required maxlength="120"></label>
+<label>Name<input name="name" required maxlength="120" placeholder="ContactSync"></label>
 <label>Anbieter<select name="provider"><option value="github">GitHub</option><option value="gitea">Gitea</option></select></label>
 <label>API-Basisadresse<input name="base_url" placeholder="https://api.github.com"></label>
-<label>Repository<input name="repository" required placeholder="Eigentümer/Repository"></label>
+<label>Repository<input name="repository" required placeholder="Markus4771/contactsync"></label>
 <label>Branch<input name="branch" value="main"></label>
 <label>Manifestpfad<input name="manifest_path" value="projekt.yaml"></label>
-<label>Secret<select name="secret_name"><option value="">Ohne Token</option>{% for name in secret_names %}<option value="{{ name }}">{{ name }}</option>{% endfor %}</select></label>
-<button type="submit">Quelle anlegen</button>
+<label>Token/Secret<select name="secret_name"><option value="">Ohne Token (öffentlich)</option>{% for name in secret_names %}<option value="{{ name }}">{{ name }}</option>{% endfor %}</select></label>
+<div><button type="submit">Quelle anlegen</button></div>
 </form>
+<p><small>Für private Repositorys zuerst unter Sicherheit ein verschlüsseltes Secret mit dem GitHub- oder Gitea-Token anlegen.</small></p>
 </section>
 {% endif %}
-<section class="card"><h2>Quellen</h2>
-<table><thead><tr><th>Name</th><th>Anbieter</th><th>Repository</th><th>Status</th><th>Letzte Synchronisation</th><th>Aktion</th></tr></thead><tbody>
-{% for source in sources %}<tr><td>{{ source.name }}</td><td>{{ source.provider }}</td><td>{{ source.repository }}</td><td>{{ source.last_status }}{% if source.last_error %}<br><small>{{ source.last_error }}</small>{% endif %}</td><td>{{ source.last_synced_at or '–' }}</td><td>{% if current_user.role == 'admin' %}<form method="post" action="/project-framework/remotes/{{ source.id }}/sync"><button>Synchronisieren</button></form>{% endif %}</td></tr>{% else %}<tr><td colspan="6">Noch keine Remote-Quellen.</td></tr>{% endfor %}
-</tbody></table></section>
+
+<section class="card">
+<div class="section-head"><h2>Quellen</h2>{% if current_user.role == 'admin' and sources %}<form method="post" action="/project-framework/remotes/sync-all"><button>Alle synchronisieren</button></form>{% endif %}</div>
+<div class="table-wrap"><table><thead><tr><th>Name</th><th>Anbieter / Repository</th><th>Branch / Manifest</th><th>Status</th><th>Letzte Synchronisation</th><th>Aktionen</th></tr></thead><tbody>
+{% for source in sources %}
+<tr>
+<td><strong>{{ source.name }}</strong><br><small>{% if source.enabled %}aktiv{% else %}deaktiviert{% endif %}</small></td>
+<td>{{ source.provider|upper }}<br><code>{{ source.repository }}</code><br><small>{{ source.base_url }}</small></td>
+<td><code>{{ source.branch }}</code><br><small>{{ source.manifest_path }}</small></td>
+<td>{{ source.last_status }}{% if source.last_error %}<details><summary>Fehler anzeigen</summary><small>{{ source.last_error }}</small></details>{% endif %}</td>
+<td>{{ source.last_synced_at or '–' }}</td>
+<td>{% if current_user.role == 'admin' %}
+<div class="actions">
+<form method="post" action="/project-framework/remotes/{{ source.id }}/test"><button type="submit">Verbindung testen</button></form>
+<form method="post" action="/project-framework/remotes/{{ source.id }}/sync"><button type="submit">Synchronisieren</button></form>
+<details><summary>Bearbeiten</summary>
+<form method="post" action="/project-framework/remotes/{{ source.id }}/edit" class="compact-form">
+<label>Name<input name="name" value="{{ source.name }}" required></label>
+<label>Anbieter<select name="provider"><option value="github" {% if source.provider == 'github' %}selected{% endif %}>GitHub</option><option value="gitea" {% if source.provider == 'gitea' %}selected{% endif %}>Gitea</option></select></label>
+<label>API-Basisadresse<input name="base_url" value="{{ source.base_url }}"></label>
+<label>Repository<input name="repository" value="{{ source.repository }}" required></label>
+<label>Branch<input name="branch" value="{{ source.branch }}"></label>
+<label>Manifestpfad<input name="manifest_path" value="{{ source.manifest_path }}"></label>
+<label>Token/Secret<select name="secret_name"><option value="">Ohne Token</option>{% for name in secret_names %}<option value="{{ name }}" {% if source.secret_name == name %}selected{% endif %}>{{ name }}</option>{% endfor %}</select></label>
+<label><input type="checkbox" name="enabled" {% if source.enabled %}checked{% endif %}> Aktiv</label>
+<button type="submit">Änderungen speichern</button>
+</form></details>
+<details><summary>Löschen</summary><form method="post" action="/project-framework/remotes/{{ source.id }}/delete" class="compact-form"><p><small>Zur Bestätigung den Repositorynamen eingeben:</small></p><input name="confirm" placeholder="{{ source.repository }}" required><button type="submit">Quelle endgültig löschen</button></form></details>
+</div>{% endif %}</td>
+</tr>
+{% else %}<tr><td colspan="6">Noch keine Remote-Quellen. Oben kannst du die erste GitHub- oder Gitea-Quelle anlegen.</td></tr>{% endfor %}
+</tbody></table></div>
+</section>
+
 <section class="card"><h2>Erkannte Release-Pakete</h2>
-<table><thead><tr><th>Projekt</th><th>Version</th><th>Datei</th><th>Prüfsumme</th><th>Status</th><th>Aktionen</th></tr></thead><tbody>
-{% for asset in assets %}<tr><td>{{ asset.project_key or asset.source_name }}</td><td>{{ asset.release_version }}</td><td>{{ asset.asset_name }}</td><td>{% if asset.expected_sha256 %}vorhanden{% else %}fehlt{% endif %}</td><td>{{ asset.state }}{% if asset.error %}<br><small>{{ asset.error }}</small>{% endif %}</td><td>{% if current_user.role == 'admin' %}{% if asset.state != 'downloaded' %}<form method="post" action="/project-framework/assets/{{ asset.id }}/download"><button>Prüfen & laden</button></form>{% else %}<form method="post" action="/project-framework/assets/{{ asset.id }}/install"><button>Installieren</button></form>{% endif %}{% endif %}</td></tr>{% else %}<tr><td colspan="6">Keine Release-Pakete erkannt.</td></tr>{% endfor %}
-</tbody></table></section>
-<section class="card"><h2>Synchronisationsprotokoll</h2><table><thead><tr><th>Zeit</th><th>Quelle</th><th>Status</th><th>Release</th><th>Fehler</th></tr></thead><tbody>{% for run in runs %}<tr><td>{{ run.started_at }}</td><td>{{ run.source_name }}</td><td>{{ run.state }}</td><td>{{ run.release_version or '–' }}</td><td>{{ run.error or '–' }}</td></tr>{% else %}<tr><td colspan="5">Noch keine Läufe.</td></tr>{% endfor %}</tbody></table></section>
+<div class="table-wrap"><table><thead><tr><th>Projekt</th><th>Version</th><th>Datei</th><th>Prüfsumme</th><th>Status</th><th>Aktionen</th></tr></thead><tbody>
+{% for asset in assets %}<tr><td>{{ asset.project_key or asset.source_name }}</td><td>{{ asset.release_version }}</td><td>{{ asset.asset_name }}</td><td>{% if asset.expected_sha256 %}<code>{{ asset.expected_sha256[:12] }}…</code>{% else %}fehlt{% endif %}</td><td>{{ asset.state }}{% if asset.error %}<br><small>{{ asset.error }}</small>{% endif %}</td><td>{% if current_user.role == 'admin' %}{% if asset.state != 'downloaded' %}<form method="post" action="/project-framework/assets/{{ asset.id }}/download"><button>Prüfen & laden</button></form>{% else %}<form method="post" action="/project-framework/assets/{{ asset.id }}/install"><button>Installieren</button></form>{% endif %}{% endif %}</td></tr>{% else %}<tr><td colspan="6">Keine Release-Pakete erkannt.</td></tr>{% endfor %}
+</tbody></table></div></section>
+
+<section class="card"><h2>Synchronisationsprotokoll</h2><div class="table-wrap"><table><thead><tr><th>Zeit</th><th>Quelle</th><th>Status</th><th>Release</th><th>Fehler</th></tr></thead><tbody>{% for run in runs %}<tr><td>{{ run.started_at }}</td><td>{{ run.source_name }}</td><td>{{ run.state }}</td><td>{{ run.release_version or '–' }}</td><td>{{ run.error or '–' }}</td></tr>{% else %}<tr><td colspan="5">Noch keine Läufe.</td></tr>{% endfor %}</tbody></table></div></section>
 {% endblock %}
