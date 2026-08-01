@@ -15,8 +15,9 @@ def test_v301_release_remains_in_chain():
     assert "app.v320_runtime:app" in service
     assert "app.v330_runtime:app" in service
     assert "app.v331_runtime:app" in service
+    assert "app.v340_runtime:app" in service
     assert '"version":"3.0.1"' in postinst
-    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.3.1"
+    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.4.0"
 
 
 def test_marketplace_blocks_ssrf_and_unsafe_versions():
