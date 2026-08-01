@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Installationsplan #{{ plan.id }}</h1>
+<p><strong>{{ plan.name }}</strong> {{ plan.version }} · Status: {{ plan.state }}</p>
+<section class="card"><h2>Abhängigkeiten</h2><ul>{% for d in plan.dependency_plan %}<li>{{ d.dependency_key }} {{ d.version_constraint }} – {% if d.installed %}installiert{% elif d.available %}verfügbar{% elif d.optional %}optional nicht verfügbar{% else %}fehlt{% endif %}</li>{% else %}<li>Keine Abhängigkeiten</li>{% endfor %}</ul></section>
+<section class="card"><h2>Berechtigungen</h2>
+{% if plan.state == 'draft' %}<form method="post" action="/manifest-installation/plans/{{ plan.id }}/approve">{% for permission in plan.requested_permissions %}<label><input type="checkbox" name="approved_permissions" value="{{ permission }}"> {{ permission }}{% if permission in dangerous_permissions %} <strong>(erweitert)</strong>{% endif %}</label><br>{% else %}<p>Keine zusätzlichen Berechtigungen.</p>{% endfor %}<button type="submit">Berechtigungen freigeben</button></form>{% else %}<p>Freigegeben: {{ plan.approved_permissions|join(', ') or 'keine' }}</p>{% endif %}
+</section>
+<section class="card"><h2>Installationsprüfung</h2><p>Asset: {{ plan.asset_name or 'nicht erforderlich' }} · Health: {{ plan.health_type or 'keiner' }} {{ plan.health_target }}</p><p>Rollback: {% if plan.rollback_enabled %}aktiv{% else %}deaktiviert{% endif %}</p>{% if plan.state == 'approved' %}<form method="post" action="/manifest-installation/plans/{{ plan.id }}/queue"><button type="submit">Download prüfen und Installation starten</button></form>{% endif %}</section>
+{% endblock %}
