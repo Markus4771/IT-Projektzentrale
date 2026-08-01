@@ -10,7 +10,7 @@ PACKAGE_ROOT="$BUILD_DIR/package"
 cleanup() { rm -rf "$BUILD_DIR"; }
 trap cleanup EXIT
 mkdir -p "$PACKAGE_ROOT/DEBIAN" "$PACKAGE_ROOT/opt/it-projektzentrale" "$PACKAGE_ROOT/usr/lib/it-projektzentrale" "$PACKAGE_ROOT/usr/share/doc/it-projektzentrale" "$PACKAGE_ROOT/etc/nginx/sites-available" "$PACKAGE_ROOT/etc/systemd/system" "$ROOT_DIR/dist"
-cp -a "$ROOT_DIR/app" "$ROOT_DIR/templates" "$ROOT_DIR/static" "$ROOT_DIR/nginx" "$ROOT_DIR/systemd" "$ROOT_DIR/requirements.txt" "$ROOT_DIR/version.txt" "$ROOT_DIR/README.md" "$ROOT_DIR/CHANGELOG.md" "$ROOT_DIR/CHATGPT_PROJEKTKONTEXT.md" "$ROOT_DIR/NEUER_CHAT.md" "$ROOT_DIR/install.sh" "$PACKAGE_ROOT/opt/it-projektzentrale/"
+cp -a "$ROOT_DIR/app" "$ROOT_DIR/templates" "$ROOT_DIR/static" "$ROOT_DIR/nginx" "$ROOT_DIR/systemd" "$ROOT_DIR/sdk" "$ROOT_DIR/requirements.txt" "$ROOT_DIR/version.txt" "$ROOT_DIR/README.md" "$ROOT_DIR/CHANGELOG.md" "$ROOT_DIR/CHATGPT_PROJEKTKONTEXT.md" "$ROOT_DIR/NEUER_CHAT.md" "$ROOT_DIR/install.sh" "$PACKAGE_ROOT/opt/it-projektzentrale/"
 rm -rf "$PACKAGE_ROOT/opt/it-projektzentrale/app/__pycache__"
 install -m 0644 "$ROOT_DIR/nginx/it-projektzentrale.conf" "$PACKAGE_ROOT/etc/nginx/sites-available/it-projektzentrale.conf"
 install -m 0644 "$ROOT_DIR/systemd/it-projektzentrale.service" "$PACKAGE_ROOT/etc/systemd/system/it-projektzentrale.service"
@@ -24,6 +24,7 @@ install -m 0755 "$ROOT_DIR/scripts/itpz-monitor-worker" "$PACKAGE_ROOT/usr/lib/i
 install -m 0755 "$ROOT_DIR/scripts/itpz-plugin-helper" "$PACKAGE_ROOT/usr/lib/it-projektzentrale/itpz-plugin-helper"
 install -m 0755 "$ROOT_DIR/scripts/itpz-doctor" "$PACKAGE_ROOT/usr/lib/it-projektzentrale/itpz-doctor"
 install -m 0644 "$ROOT_DIR/docs/LTS_3_1.md" "$PACKAGE_ROOT/usr/share/doc/it-projektzentrale/LTS_3_1.md"
+install -m 0644 "$ROOT_DIR/docs/PROJECT_SDK.md" "$PACKAGE_ROOT/usr/share/doc/it-projektzentrale/PROJECT_SDK.md"
 sed "s/@DEBIAN_VERSION@/$DEBIAN_VERSION/" "$ROOT_DIR/debian/control.in" > "$PACKAGE_ROOT/DEBIAN/control"
 install -m 0644 "$ROOT_DIR/debian/conffiles" "$PACKAGE_ROOT/DEBIAN/conffiles"
 install -m 0755 "$ROOT_DIR/debian/postinst" "$PACKAGE_ROOT/DEBIAN/postinst"

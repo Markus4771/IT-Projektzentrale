@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Projekt-SDK</h1>
+<p>Vorlage und Prüfer für Projekte, die automatisch erkannt, installiert und überwacht werden sollen.</p>
+{% if request.query_params.get('message') %}<div class="message">{{ request.query_params.get('message') }}</div>{% endif %}
+{% if request.query_params.get('error') %}<div class="error">{{ request.query_params.get('error') }}</div>{% endif %}
+<section class="card">
+<h2>Schnellstart</h2>
+<ol><li><a href="/project-sdk/projekt.yaml">projekt.yaml herunterladen</a></li><li>Projekt-ID, Paketname, Repository und Health-Endpunkt anpassen.</li><li>SHA256 des Release-Pakets eintragen.</li><li>Datei im Wurzelverzeichnis des Repositories ablegen.</li><li>Im Repository-Katalog die Erkennung starten.</li></ol>
+</section>
+<section class="card">
+<h2>Manifest prüfen</h2>
+<form method="post" action="/project-sdk/validate">
+<textarea name="manifest_text" rows="30" style="width:100%" required>{{ sdk_template }}</textarea>
+<button type="submit">Manifest validieren</button>
+</form>
+</section>
+<section class="card"><h2>Integrationsvertrag</h2><p>Empfohlen sind ein Debian-Paket, ein systemd-Dienst, ein lokaler HTTP-Health-Endpunkt und ein signiertes GitHub-/Gitea-Release mit veröffentlichter SHA256-Prüfsumme.</p></section>
+{% endblock %}

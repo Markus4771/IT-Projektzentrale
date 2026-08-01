@@ -14,8 +14,9 @@ def test_monitoring_release_is_wired():
     assert "app.v320_runtime:app" in service
     assert "app.v330_runtime:app" in service
     assert "app.v331_runtime:app" in service
+    assert "app.v340_runtime:app" in service
     assert '"version":"2.5.0"' in postinst
-    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.3.1"
+    assert (ROOT / "version.txt").read_text(encoding="utf-8").strip() == "3.4.0"
 
 
 def test_monitoring_has_rules_alerts_and_windows():
