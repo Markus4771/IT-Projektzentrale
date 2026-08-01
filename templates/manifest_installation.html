@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Manifest-Installation</h1>
+<p>Erstellt prüfbare Installationspläne aus gültigen <code>projekt.yaml</code>-Manifesten.</p>
+{% if message %}<div class="alert success">{{ message }}</div>{% endif %}
+{% if error %}<div class="alert error">{{ error }}</div>{% endif %}
+<section class="card">
+<h2>Verfügbare Projekte</h2>
+<table><thead><tr><th>Projekt</th><th>Version</th><th>Typ</th><th>Status</th><th></th></tr></thead><tbody>
+{% for m in manifests %}<tr><td>{{ m.name }}<br><small>{{ m.project_key }}</small></td><td>{{ m.version }}</td><td>{{ m.project_type }}</td><td>{{ m.plan_state or 'bereit' }}</td><td><form method="post" action="/manifest-installation/manifests/{{ m.id }}/plan"><button type="submit">Installationsplan erstellen</button></form></td></tr>{% else %}<tr><td colspan="5">Keine gültigen Manifeste vorhanden.</td></tr>{% endfor %}
+</tbody></table>
+</section>
+<section class="card">
+<h2>Letzte Installationspläne</h2>
+<table><thead><tr><th>ID</th><th>Projekt</th><th>Version</th><th>Status</th><th>Auftrag</th></tr></thead><tbody>
+{% for p in plans %}<tr><td><a href="/manifest-installation/plans/{{ p.id }}">#{{ p.id }}</a></td><td>{{ p.name }}</td><td>{{ p.version }}</td><td>{{ p.state }}</td><td>{% if p.installation_job_id %}<a href="/installation/jobs/{{ p.installation_job_id }}">#{{ p.installation_job_id }}</a>{% else %}–{% endif %}</td></tr>{% else %}<tr><td colspan="5">Noch keine Pläne vorhanden.</td></tr>{% endfor %}
+</tbody></table>
+</section>
+{% endblock %}
