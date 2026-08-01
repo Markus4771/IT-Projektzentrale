@@ -2,6 +2,7 @@ from __future__ import annotations
 
 """Version 3.5.2: erster durchgängiger GitHub-Installationsassistent."""
 
+import re
 import sqlite3
 import urllib.parse
 
@@ -10,13 +11,23 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 
 import app.main as base
 from app.main import audit, db, render, require_admin, require_user
-from app.v330 import REPOSITORY_RE, _sync_source
+from app.v330 import (
+    MAX_MANIFEST,
+    REPOSITORY_RE,
+    _api_urls,
+    _headers,
+    _request_bytes,
+    _request_json,
+    _sync_source,
+)
 from app.v350 import _create_plan
 from app.v351 import app
 
 VERSION = "3.5.2"
 base.VERSION = VERSION
 app.version = VERSION
+
+SHA256_RE = re.compile(r"^[a-fA-F0-9]{64}$")
 
 
 def _find_or_create_github_source(repository: str, secret_name: str, user_id: int) -> int:
@@ -47,9 +58,63 @@ def _find_or_create_github_source(repository: str, secret_name: str, user_id: in
     return int(cursor.lastrowid)
 
 
+def _resolve_release_checksum(source_id: int, result: dict) -> None:
+    """Liest optional eine *.sha256-Datei aus demselben GitHub-Release."""
+    package = result["manifest"].get("package") or {}
+    checksum_asset = str(package.get("sha256_asset") or "").strip()
+    if not checksum_asset:
+        return
+    if "/" in checksum_asset or "\\" in checksum_asset or not checksum_asset.endswith(".sha256"):
+        raise HTTPException(400, "package.sha256_asset muss ein sicherer .sha256-Dateiname sein")
+
+    with db() as conn:
+        source_row = conn.execute(
+            "SELECT * FROM project_remote_sources WHERE id=? AND enabled=1", (source_id,)
+        ).fetchone()
+        release_row = conn.execute(
+            """SELECT id,asset_name FROM project_release_assets
+               WHERE source_id=? AND manifest_id=(
+                   SELECT id FROM project_manifests WHERE project_key=?
+               ) ORDER BY id DESC LIMIT 1""",
+            (source_id, result["manifest"]["id"]),
+        ).fetchone()
+    if not source_row or not release_row:
+        raise HTTPException(409, "Release-Paket wurde nicht eindeutig erkannt")
+
+    source = dict(source_row)
+    _manifest_url, release_url = _api_urls(source)
+    headers = _headers(source)
+    release_doc = _request_json(release_url, headers, MAX_MANIFEST * 4)
+    checksum_url = ""
+    for item in release_doc.get("assets") or []:
+        if str(item.get("name") or "") == checksum_asset:
+            checksum_url = str(item.get("browser_download_url") or item.get("url") or "")
+            break
+    if not checksum_url.startswith("https://"):
+        raise HTTPException(409, f"Prüfsummendatei {checksum_asset} fehlt im GitHub-Release")
+
+    download_headers = dict(headers)
+    download_headers["Accept"] = "application/octet-stream"
+    text = _request_bytes(checksum_url, download_headers, 4096).decode("utf-8", errors="strict").strip()
+    digest = text.split()[0].lower() if text else ""
+    if not SHA256_RE.fullmatch(digest):
+        raise HTTPException(400, "SHA256-Seitendatei enthält keine gültige Prüfsumme")
+    mentioned_name = text.split()[1].lstrip("*") if len(text.split()) > 1 else ""
+    if mentioned_name and mentioned_name != release_row["asset_name"]:
+        raise HTTPException(409, "SHA256-Seitendatei gehört nicht zum erkannten Debian-Paket")
+
+    with db() as conn:
+        conn.execute(
+            "UPDATE project_release_assets SET expected_sha256=?,error='' WHERE id=?",
+            (digest, release_row["id"]),
+        )
+    audit("github_install.checksum_resolved", int(release_row["id"]), checksum_asset)
+
+
 def _prepare_installation(repository: str, secret_name: str, user_id: int) -> tuple[int, int, dict]:
     source_id = _find_or_create_github_source(repository, secret_name, user_id)
     result = _sync_source(source_id)
+    _resolve_release_checksum(source_id, result)
     with db() as conn:
         row = conn.execute(
             """SELECT m.id FROM project_manifests m
